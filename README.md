@@ -1,5 +1,5 @@
 # What is this?
-A Java application which runs both a [Spring Boot](https://spring.io/projects/spring-boot) web API, and a Discord Bot with [JDA](https://github.com/discord-jda/JDA). In tandem, these two services drive the moderation side of the Roblox game [Ability Wars](https://www.roblox.com/games/8260276694/UPDATE-Ability-Wars). I developed this as a portfolio-building exercise, learning experience for Spring Boot, and just for fun. 😁
+A Java application which runs both a [Spring Boot](https://spring.io/projects/spring-boot) web API, and a Discord Bot with [JDA](https://github.com/discord-jda/JDA). In tandem, these two services drive the moderation side of the Roblox game [Ability Wars](https://www.roblox.com/games/8260276694/UPDATE-Ability-Wars). I developed this as a portfolio-building exercise, learning experience for Spring Boot, and just for fun. 😁 Despite this though, this software is an absolute powerhouse with deep integration, solid infrastructure, and battle-tested code.
 
 # Features
 - Allows players to query their in-game stats, and status of their in-game ban, if any.
