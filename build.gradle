@@ -1,0 +1,54 @@
+plugins {
+    id 'org.springframework.boot' version '3.4.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'application'
+    id 'java'
+    id 'com.gradleup.shadow' version "9.0.0-beta7"
+}
+
+group = 'org.lukecreator'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.4.2')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.48.0.0'
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.12.1'
+    implementation group: 'net.dv8tion', name: 'JDA', version: '5.3.0'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.13.0'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+application {
+    mainClass = 'org.lukecreator.aw.Main'
+}
+
+shadowJar {
+    archiveFileName = 'aw-service.jar'
+    mergeServiceFiles()
+    manifest {
+        attributes(
+                'Main-Class': application.mainClass,
+                'Spring-Boot-Version': '3.4.2',
+                'Start-Class': application.mainClass
+        )
+    }
+}
+
+tasks.shadowJar.dependsOn tasks.bootJar
+
+configurations {
+    implementation.canBeResolved = true
+}
