@@ -1,5 +1,13 @@
 # What is this?
+
+### Too long, didn't read:
+A service which lets Roblox connect with a Discord Bot, lets mods run in-game commands from Discord, logs moderator activity, supports both player report and ban appeal tickets, and keeps track of bans and ban evidence.
+
+### Too long, did read:
 A Java application which runs both a [Spring Boot](https://spring.io/projects/spring-boot) web API, and a Discord Bot with [JDA](https://github.com/discord-jda/JDA). In tandem, these two services drive the moderation side of the Roblox game [Ability Wars](https://www.roblox.com/games/8260276694/UPDATE-Ability-Wars). I developed this as a portfolio-building exercise, learning experience for Spring Boot, and just for fun. 😁 Despite this though, this software is an absolute powerhouse with deep integration, solid infrastructure, and battle-tested code.
+
+### Documentation
+I'm releasing this to hopefully help out someone interested in doing something similar for their own game with a similar tech stack. All the source code is documented and commented to the BEST of my ability to hopefully enable easy understanding and modification. It's REALLY biased for Ability Wars, but that's just because that's what it's designed for. Hack this code up all you want and make it your own. There's plenty of examples here to learn from!
 
 # Features
 - Allows players to query their in-game stats, and status of their in-game ban, if any.
