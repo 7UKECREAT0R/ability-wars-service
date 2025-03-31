@@ -1,3 +1,5 @@
+![icon](https://github.com/user-attachments/assets/1dc24087-758a-4508-b38e-550fd40ade87)
+
 # What is this?
 
 ### Too long, didn't read:
