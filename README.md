@@ -20,7 +20,8 @@ If you don't have experience in Java/JDA/Spring or it's not immediately obvious 
 You're fully allowed to use this for your own Roblox game (within license terms), but it will require **lots** of effort to deploy and hook it up to your game.
 
 ### Polling
-Once you have the Spring application exposed on a server/VPS, you'll need to call the `/poll` endpoint every couple of seconds and reply to the requests in the payload and `/fulfill` with fulfillments accordingly.
+Once you have the Spring application exposed on a server/VPS, you'll need to call the `/poll` endpoint every couple of seconds and `/fulfill` the requests accordingly
+You can make/receive more than one request per call on either of the endpoints. Additionally, it's good to note you can `/fulfill` anything that happens, even if you don't have a fulfillment ID.
 
 ### Environment Variables
 Besides changing the ID constants internally, you'll also need your environment set up with a couple of environment variables:
