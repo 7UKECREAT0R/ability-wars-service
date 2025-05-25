@@ -3,6 +3,8 @@ package org.lukecreator.aw.data;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.AWDatabase;
@@ -69,7 +71,11 @@ public class AWTicketsManager {
      * For a ticket to be dead, it must satisfy one of the following conditions:
      * <ul>
      *     <li>Its {@link AWTicket#getDiscordChannelId()} doesn't resolve to a valid channel.</li>
-     *     <li>The channel is missing the primary bot message, making it impossible to resolve.</li>
+     *     <li>
+     *      A ticket channel's dashboard message is missing (likely deleted by accident).
+     *      The dashboard message must be sent by the owned bot, have an embed in it, and have an action row with components in it.
+     *     </li>
+     *     <li>A channel in a ticket category doesn't have an open ticket linked to it.</li>
      * </ul>
      * <p>
      * This should be run maybe once on bot start and be available via a command in case something breaks. This function
@@ -85,39 +91,39 @@ public class AWTicketsManager {
 
         final long selfUserId = jda.getSelfUser().getIdLong();
 
-        // collect dead tickets
         for (AWTicket ticket : OPEN_TICKETS_BY_ID.values()) {
-            long ticketId = ticket.id;
-            AWTicket.Type type = ticket.type();
-            long guildId = type.guildId;
-            Guild guild = jda.getGuildById(guildId);
-            if (guild == null) {
-                errors.add("Unavailable guild %d for ticket %d".formatted(guildId, ticketId));
+            long channelId = ticket.getDiscordChannelId();
+            long guildId = ticket.type().guildId;
+
+            // collect tickets which don't have a valid channel
+            if (channelId == 0L || channelId == -1L) {
+                deadTickets.add(ticket);
                 continue;
             }
-
-            long channelId = ticket.getDiscordChannelId();
-            TextChannel channel = guild.getTextChannelById(channelId);
-
+            Guild ticketGuild = jda.getGuildById(guildId);
+            if (ticketGuild == null) {
+                errors.add("Failed to get the guild %d which was requested by ticket type %s.".formatted(guildId, ticket.type().identifier));
+                continue;
+            }
+            TextChannel channel = ticketGuild.getTextChannelById(channelId);
             if (channel == null) {
                 deadTickets.add(ticket);
                 continue;
             }
 
-            // channel does exist, now scan for the primary bot message
-            List<Message> pinnedMessages = channel.retrievePinnedMessages().complete();
-            if (pinnedMessages.isEmpty()) {
-                deadTickets.add(ticket);
-                continue;
-            }
-            boolean anyByBot = false;
-            for (Message pinnedMessage : pinnedMessages) {
-                if (pinnedMessage.getAuthor().getIdLong() == selfUserId) {
-                    anyByBot = true;
+            // collect tickets where the dashboard message is missing
+            MessageHistory history = channel.getHistoryFromBeginning(3).complete();
+            List<Message> messages = history.getRetrievedHistory();
+            boolean foundDashboardMessage = false;
+            for (Message message : messages) {
+                if (message.getAuthor().getIdLong() != selfUserId)
+                    continue;
+                if (!message.getActionRows().isEmpty() && !message.getEmbeds().isEmpty()) {
+                    foundDashboardMessage = true;
                     break;
                 }
             }
-            if (!anyByBot)
+            if (!foundDashboardMessage)
                 deadTickets.add(ticket);
         }
 
@@ -127,9 +133,28 @@ public class AWTicketsManager {
         // remove them silently
         for (AWTicket deadTicket : deadTickets) {
             try {
-                deadTicket.cleanup(jda, null);
+                deadTicket.cleanup(jda);
             } catch (SQLException e) {
                 errors.add("Failed to cleanup dead ticket %d due to database error: %s".formatted(deadTicket.id, e.getMessage()));
+            }
+        }
+
+        // find and remove channels which are not linked to any ticket
+        for (AWTicket.Type type : AWTicket.Type.values()) {
+            Guild guild = jda.getGuildById(type.guildId);
+            if (guild == null) {
+                errors.add("Failed to get the guild %d which was requested by ticket type %s.".formatted(type.guildId, type.identifier));
+                continue;
+            }
+            Category category = guild.getCategoryById(type.channelCategoryId);
+            if (category == null) {
+                errors.add("Failed to get the category %d which was requested by ticket type %s.".formatted(type.channelCategoryId, type.identifier));
+                continue;
+            }
+            List<TextChannel> channels = category.getTextChannels();
+            for (TextChannel channel : channels) {
+                if (getTicketFromCacheByDiscordChannel(channel) == null)
+                    channel.delete().complete(); // delete the channel since there's no ticket linked to it
             }
         }
 

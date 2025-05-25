@@ -84,7 +84,9 @@ public class AbilityWarsBot extends ListenerAdapter {
 
     private void registerCommands() {
         CommandListUpdateAction action = this.bot.updateCommands();
-        ArrayList<CommandData> data = Arrays.stream(ALL_COMMANDS).map(BotCommand::constructCommand).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+        ArrayList<CommandData> data = Arrays.stream(ALL_COMMANDS)
+                .map(BotCommand::constructCommand)
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         System.out.println("Registering " + data.size() + " commands.");
         action.addCommands(data).queue();
     }
@@ -133,9 +135,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                         }
                     }
                     acceptDeletedUser.accept(null);
-                }, failure -> {
-                    acceptDeletedUser.accept(null);
-                });
+                }, failure -> acceptDeletedUser.accept(null));
             }
         }
     }
@@ -315,9 +315,6 @@ public class AbilityWarsBot extends ListenerAdapter {
 
                     if (!success) return; // stop here, input was invalid
 
-                    // done by loadFromModalResponse call above
-                    event.deferReply().setEphemeral(true).queue();
-
                     // open the channel
                     ticket.createOrGetChannel(event.getJDA(), (channel -> {
                         ticket.afterTicketChannelCreated(channel);
@@ -333,9 +330,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                         } finally {
                             event.getInteraction().getHook().editOriginal(successMessage).queue();
                         }
-                    }), (ignored -> {
-                        event.getHook().editOriginal("Failed to open the ticket. Error from Discord: `%s`".formatted(ignored.getMessage() != null ? ignored.getMessage() : "No message provided")).queue();
-                    }));
+                    }), (error -> event.getHook().editOriginal("Failed to open the ticket. Error from Discord: `%s`".formatted(error.getMessage() != null ? error.getMessage() : "No message provided")).queue()));
                 } catch (java.sql.SQLException e) {
                     e.printStackTrace();
                     if (event.isAcknowledged()) {
@@ -366,6 +361,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                     else
                         event.reply("The Ability Wars database messed up somehow; try again later.").setEphemeral(true).queue();
                 }
+                break;
             }
         }
     }

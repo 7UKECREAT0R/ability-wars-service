@@ -127,6 +127,7 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
         ModalMapping questionCMapping = event.getInteraction().getValue("question-c");
 
         if (questionAMapping == null || questionBMapping == null || questionCMapping == null) {
+            // editing since the super.loadFromModalResponse call already sent a reply.
             event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
             return false;
         }
