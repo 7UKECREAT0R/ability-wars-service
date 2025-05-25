@@ -76,7 +76,12 @@ public class AbilityWarsBot extends ListenerAdapter {
      * Creates and starts a new Ability Wars bot instance.
      */
     public AbilityWarsBot(boolean registerCommands) {
-        JDABuilder builder = JDABuilder.createDefault(TOKEN).enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT).setActivity(Activity.of(Activity.ActivityType.PLAYING, "Skyrift")).setAutoReconnect(true).addEventListeners(this);
+        JDABuilder builder = JDABuilder
+                .createDefault(TOKEN)
+                .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                .setActivity(Activity.of(Activity.ActivityType.PLAYING, "Skyrift"))
+                .setAutoReconnect(true)
+                .addEventListeners(this);
         this.bot = builder.build();
 
         if (registerCommands) this.registerCommands();
