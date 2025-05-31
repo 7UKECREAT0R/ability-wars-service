@@ -55,7 +55,7 @@ public class StatsCommand extends BotCommand {
             if (usernameOption == null)
                 return;
             String username = usernameOption.getAsString();
-            user = RobloxAPI.getUserByInput(username);
+            user = RobloxAPI.getUserByInput(username, true);
 
             if (user == null) {
                 e.reply(getUnknownUsernameDescriptor(username)).queue();

@@ -84,7 +84,7 @@ public class BlacklistInfoCommand extends BotCommand {
 
     public void executeRoblox(SlashCommandInteractionEvent e) throws SQLException {
         OptionMapping userMapping = e.getOption("user");
-        
+
         if (userMapping == null) {
             e.reply("User wasn't present?").setEphemeral(true).queue();
             return;
@@ -92,7 +92,7 @@ public class BlacklistInfoCommand extends BotCommand {
 
         String targetInput = userMapping.getAsString();
 
-        RobloxAPI.User target = RobloxAPI.getUserByInput(targetInput);
+        RobloxAPI.User target = RobloxAPI.getUserByInput(targetInput, true);
         if (target == null) {
             String descriptor = BotCommand.getUnknownUsernameDescriptor(targetInput);
             e.reply(descriptor).setEphemeral(true).queue();

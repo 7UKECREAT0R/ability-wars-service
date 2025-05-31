@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.dv8tion.jda.api.entities.Message;
+import org.jetbrains.annotations.NotNull;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
 
 import java.net.URI;
@@ -35,12 +36,13 @@ public class RobloxAPI {
      * Attempts to determine the user by checking for Discord-Roblox links,
      * querying the Bloxlink API (if applicable), or searching Roblox records.
      *
-     * @param input The input string representing either a Discord ID (mention format),
-     *              Roblox ID, or username to identify the user.
+     * @param input         The input string representing either a Discord ID (mention format),
+     *                      Roblox ID, or username to identify the user.
+     * @param allowBloxlink If true, the Bloxlink API may be used if a Discord mention is passed in.
      * @return A {@link User} object if a match is found, or null if no match exists.
      * @throws SQLException If a database access error occurs during the query.
      */
-    public static User getUserByInput(String input) throws SQLException {
+    public static User getUserByInput(String input, boolean allowBloxlink) throws SQLException {
         var matcher = userMentionPattern.matcher(input);
         if (matcher.matches()) {
             // unwrap ping into a Discord ID and then try to find a link
@@ -49,6 +51,8 @@ public class RobloxAPI {
             if (robloxId == null) {
                 // no link, can't find the user based on this
                 // try to use Bloxlink API
+                if (!allowBloxlink)
+                    return null;
                 robloxId = BloxlinkAPI.lookupRobloxId(discordId);
                 if (robloxId == null)
                     return null; // no bloxlink records, or out of free API usage
@@ -237,6 +241,7 @@ public class RobloxAPI {
 
 
     public record User(long userId, String username, String bio, long creationDate) {
+        @NotNull
         @Override
         public String toString() {
             return String.format("%d - %s (created %tB %<te, %<tY)", this.userId, this.username, this.creationDate);
@@ -248,6 +253,7 @@ public class RobloxAPI {
     }
 
     public record Gamepass(long gamepassId, int robuxCost, String name, String description) {
+        @NotNull
         @Override
         public String toString() {
             return String.format("%d - %s (%d robux)", this.gamepassId, this.name, this.robuxCost);

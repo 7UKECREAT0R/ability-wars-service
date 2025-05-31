@@ -26,6 +26,7 @@ public class AWTicketsManager {
 
     /**
      * Retrieves a collection of all open tickets currently stored in the cache.
+     * 6
      *
      * @return A collection of open tickets, sourced from the cache.
      */

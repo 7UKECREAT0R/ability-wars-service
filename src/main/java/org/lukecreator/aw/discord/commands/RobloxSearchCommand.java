@@ -31,7 +31,7 @@ public class RobloxSearchCommand extends BotCommand {
         if (usernameOption == null)
             return;
         String username = usernameOption.getAsString();
-        RobloxAPI.User user = RobloxAPI.getUserByInput(username);
+        RobloxAPI.User user = RobloxAPI.getUserByInput(username, true);
 
         if (user == null) {
             e.reply(getUnknownUsernameDescriptor(username)).queue();

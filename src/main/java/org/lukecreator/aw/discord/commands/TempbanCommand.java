@@ -50,7 +50,7 @@ public class TempbanCommand extends BotCommand {
         if (StaffRoles.blockIfNotStaff(e))
             return;
 
-        RobloxAPI.User targetUser = RobloxAPI.getUserByInput(targetUsername);
+        RobloxAPI.User targetUser = RobloxAPI.getUserByInput(targetUsername, true);
         Long responsibleModerator = DiscordRobloxLinks.robloxIdFromDiscordId(e.getUser().getIdLong());
 
         if (targetUser == null) {

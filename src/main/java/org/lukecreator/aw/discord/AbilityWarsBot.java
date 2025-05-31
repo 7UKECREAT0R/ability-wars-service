@@ -5,21 +5,21 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
-import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
@@ -92,7 +92,11 @@ public class AbilityWarsBot extends ListenerAdapter {
         ArrayList<CommandData> data = Arrays.stream(ALL_COMMANDS)
                 .map(BotCommand::constructCommand)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-        System.out.println("Registering " + data.size() + " commands.");
+
+        data.add(Commands.message("Add as Evidence"));
+        data.add(Commands.message("Set as Main Evidence"));
+
+        System.out.println("Registering " + data.size() + " commands...");
         action.addCommands(data).queue();
     }
 
@@ -160,6 +164,65 @@ public class AbilityWarsBot extends ListenerAdapter {
         if (ticketTest != null) {
             // signal to the ticket about the message
             ticketTest.onMessageReceived(event);
+        }
+    }
+
+    @Override
+    public void onMessageContextInteraction(MessageContextInteractionEvent event) {
+        String contextCommandName = event.getName().toUpperCase();
+
+        // for now, the only context commands we have are for use in tickets only by staff.
+        // if this changes, this method can be refactored then.
+        if (StaffRoles.blockIfNotStaff(event))
+            return;
+
+        Message message = event.getTarget();
+        MessageChannelUnion _channel = message.getChannel();
+        if (_channel.getType() != ChannelType.TEXT) {
+            event.reply("This action can only be used in a text channel.").setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel channel = _channel.asTextChannel();
+        AWTicket ticket = AWTicketsManager.getTicketFromCacheByDiscordChannel(channel);
+        if (ticket == null) {
+            event.reply("This action can only be used in a ticket.").setEphemeral(true).queue();
+            return;
+        }
+
+        switch (contextCommandName) {
+            case "ADD AS EVIDENCE": {
+                if (ticket.type() != AWTicket.Type.PlayerReport) {
+                    event.reply("This action can only be used in a player report ticket.").setEphemeral(true).queue();
+                    return;
+                }
+                AWPlayerReportTicket playerReportTicket = (AWPlayerReportTicket) ticket;
+                try {
+                    String report = playerReportTicket.addExtraEvidenceFromMessage(message);
+                    event.replyEmbeds(new EmbedBuilder().setDescription(report).build()).queue();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    event.reply("An internal error occurred while trying to add evidence. Please try again later.\n```\n%s\n```".formatted(e.toString())).setEphemeral(true).queue();
+                    return;
+                }
+                return;
+            }
+            case "SET AS MAIN EVIDENCE": {
+                if (ticket.type() != AWTicket.Type.PlayerReport) {
+                    event.reply("This action can only be used in a player report ticket.").setEphemeral(true).queue();
+                    return;
+                }
+                AWPlayerReportTicket playerReportTicket = (AWPlayerReportTicket) ticket;
+                try {
+                    String report = playerReportTicket.changeMainEvidenceFromMessage(message);
+                    event.replyEmbeds(new EmbedBuilder().setDescription(report).build()).queue();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    event.reply("An internal error occurred while trying to set the main evidence. Please try again later.\n```\n%s\n```".formatted(e.toString())).setEphemeral(true).queue();
+                    return;
+                }
+                return;
+            }
         }
     }
 

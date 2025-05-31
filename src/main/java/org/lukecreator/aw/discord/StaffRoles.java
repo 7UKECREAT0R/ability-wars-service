@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
@@ -102,9 +103,7 @@ public class StaffRoles {
 
         if (e.getInteraction().getHook().isExpired()) {
             MessageChannel channel = e.getChannel();
-            channel.sendMessageEmbeds(eb.build()).queue(message -> {
-                message.delete().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS);
-            });
+            channel.sendMessageEmbeds(eb.build()).queue(message -> message.delete().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS));
         } else {
             if (e.getInteraction().isAcknowledged()) {
                 e.getInteraction().getHook()
@@ -112,10 +111,43 @@ public class StaffRoles {
                         .setContent(null)
                         .queue();
             } else {
-                e.replyEmbeds(eb.build()).setEphemeral(false).queue(hook -> {
-                    hook.deleteOriginal().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS);
-                });
+                e.replyEmbeds(eb.build()).setEphemeral(false).queue(hook -> hook.deleteOriginal().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS));
             }
+        }
+        return true;
+    }
+
+    /**
+     * Blocks the context menu interaction if the executing member does not have a staff role or a manually linked account to Roblox.
+     *
+     * @param e The context menu event to possibly block.
+     * @return True if the interaction was blocked, false if nothing happened.
+     */
+    public static boolean blockIfNotStaff(MessageContextInteractionEvent e) {
+        Member member = e.getMember();
+
+        if (isStaff(member))
+            return false;
+
+        // block interaction
+        User user = e.getUser();
+        EmbedBuilder eb = new EmbedBuilder()
+                .setTitle("Staff Only Beyond This Point")
+                .setDescription(user.getAsMention() + ", to use this action, you must be a staff member for Ability Wars and have a manually linked Roblox account. (contact an administrator if you're staff but don't have one yet)")
+                .setFooter("tldr; if you're not staff, this isn't a button for you!")
+                .setColor(Color.RED);
+
+        if (!e.getInteraction().getHook().isExpired()) {
+            if (e.getInteraction().isAcknowledged()) {
+                e.getInteraction().getHook()
+                        .editOriginalEmbeds(eb.build())
+                        .setContent(null)
+                        .queue();
+            } else {
+                e.replyEmbeds(eb.build()).setEphemeral(false).queue(hook -> hook.deleteOriginal().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS));
+            }
+        } else {
+            e.deferReply(true).queue();
         }
         return true;
     }
@@ -157,4 +189,5 @@ public class StaffRoles {
         List<Role> roles = mentionedMember.getRoles();
         return roles.stream().anyMatch(StaffRoles::isStaffRole);
     }
+
 }

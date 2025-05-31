@@ -288,6 +288,180 @@ public class AWPlayerReportTicket extends AWTicket {
         };
     }
 
+    /**
+     * Adds additional evidence from a given message to the ticket. If the ticket already has evidence,
+     * it attempts to change the main evidence. If no evidence is present in the ticket and the message
+     * does not contain valid attachments or URLs, a suitable error message is returned.
+     * <p>
+     * The method handles different scenarios such as messages with attachments, supported URLs, and
+     * invalid inputs. If valid evidence is provided, it creates a new evidence entry and links it to
+     * the current ticket.
+     *
+     * @param message The message object containing the evidence information, such as text,
+     *                attachments, or links.
+     * @return A string message indicating the result of the operation, such as success or an error
+     * description if the evidence could not be added.
+     * @throws SQLException If there is an error interacting with the database while adding evidence.
+     */
+    public String addExtraEvidenceFromMessage(Message message) throws SQLException {
+        if (!this.hasEvidence()) {
+            return this.changeMainEvidenceFromMessage(message);
+        }
+
+        List<Message.Attachment> attachments = message.getAttachments();
+        if (attachments.isEmpty()) {
+            String evidenceURL = extractSupportedServiceUrl(message.getContentRaw());
+            if (evidenceURL == null) {
+                return "Please provide a valid link to the evidence.";
+            }
+
+            long id = System.currentTimeMillis();
+            String evidenceDetails = message.getContentRaw().replace(evidenceURL, "").trim();
+            long timestamp = AWEvidence.tryExtractTimestamp(evidenceDetails);
+
+            AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), evidenceDetails, evidenceURL);
+            newEvidence.pushToDatabase();
+            Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+
+            return "Added evidence successfully. (evidence ID: `%d`)".formatted(id);
+        }
+
+        for (Message.Attachment attachment : attachments) {
+            if (!AWEvidence.isValidAttachment(attachment)) {
+                String extension = attachment.getFileExtension();
+                if (extension == null) {
+                    return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                }
+                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. For videos, we support `.mp4`, and for images, we support all popular file types.";
+            }
+        }
+
+        MessageChannel forwardChannel = message.getGuild()
+                .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
+        if (forwardChannel == null) {
+            return "I couldn't find the `mp4-storage` channel, please contact the developers.";
+        }
+
+        final String messageContent = message.getContentStripped().trim();
+        final long timestamp = AWEvidence.tryExtractTimestamp(messageContent);
+
+        message.forwardTo(forwardChannel).queue(newMsg -> {
+            this.evidenceURL = newMsg.getJumpUrl();
+            long id = System.currentTimeMillis();
+
+            if (!messageContent.isBlank()) {
+                if (this.evidenceDetails == null || this.evidenceDetails.isBlank())
+                    this.evidenceDetails = messageContent;
+                else
+                    this.evidenceDetails = this.evidenceDetails + "\n\n" + messageContent;
+            }
+
+            try {
+                AWEvidence evidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), messageContent, this.evidenceURL);
+                evidence.pushToDatabase();
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        return "Added evidence successfully.";
+    }
+
+    /**
+     * Attempts to change the main evidence associated with the ticket based on the provided
+     * message. The evidence can be a URL or valid attachments in the message. If no valid
+     * evidence is found, an appropriate error message is returned.
+     * <p>
+     * The method processes various scenarios, such as:
+     * - Messages containing URLs that match supported services.
+     * - Messages with valid attachments (specific file formats supported).
+     * - Error handling for unsupported file types or missing evidence.
+     * <p>
+     * If valid evidence is provided, it replaces the current evidence, updates the database,
+     * and links the new evidence to the ticket.
+     *
+     * @param message The message containing the evidence in the form of a URL, attachments,
+     *                or textual details.
+     * @return A string message indicating the result of the operation, such as success or a
+     * descriptive error message if the evidence could not be changed.
+     * @throws SQLException If an error occurs while interacting with the database.
+     */
+    public String changeMainEvidenceFromMessage(Message message) throws SQLException {
+        List<Message.Attachment> attachments = message.getAttachments();
+        long previousEvidenceId = this.evidenceId;
+
+        if (attachments.isEmpty()) {
+            String evidenceURL = extractSupportedServiceUrl(message.getContentRaw());
+            if (evidenceURL == null) {
+                return "Please provide a valid link to the evidence.";
+            }
+
+            long id = System.currentTimeMillis();
+            String evidenceDetails = message.getContentRaw().replace(evidenceURL, "").trim();
+            long timestamp = AWEvidence.tryExtractTimestamp(evidenceDetails);
+
+            this.evidenceURL = evidenceURL;
+            if (!message.getContentRaw().equals(evidenceURL)) {
+                if (this.evidenceDetails == null || this.evidenceDetails.isBlank())
+                    this.evidenceDetails = evidenceDetails;
+                else
+                    this.evidenceDetails = this.evidenceDetails + "\n\n" + evidenceDetails;
+            }
+
+            this.evidenceId = id;
+
+            AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
+            newEvidence.pushToDatabase();
+            Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+
+            return "Changed the evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
+        }
+
+        for (Message.Attachment attachment : attachments) {
+            if (!AWEvidence.isValidAttachment(attachment)) {
+                String extension = attachment.getFileExtension();
+                if (extension == null) {
+                    return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                }
+                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. For videos, we support `.mp4`, and for images, we support all popular file types.";
+            }
+        }
+
+        MessageChannel forwardChannel = message.getGuild()
+                .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
+        if (forwardChannel == null) {
+            return "I couldn't find the `mp4-storage` channel, please contact the developers.";
+        }
+
+        final String messageContent = message.getContentStripped().trim();
+        final long timestamp = AWEvidence.tryExtractTimestamp(messageContent);
+
+        message.forwardTo(forwardChannel).queue(newMsg -> {
+            this.evidenceURL = newMsg.getJumpUrl();
+            long id = System.currentTimeMillis();
+
+            if (!messageContent.isBlank()) {
+                if (this.evidenceDetails == null || this.evidenceDetails.isBlank())
+                    this.evidenceDetails = messageContent;
+                else
+                    this.evidenceDetails = this.evidenceDetails + "\n\n" + messageContent;
+            }
+
+            try {
+                this.evidenceId = id;
+                AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
+                newEvidence.pushToDatabase();
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+
+        return "Changed the evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
+    }
+
+
     public RobloxAPI.User getAccusedUser() {
         return this.accusedUser;
     }
@@ -559,7 +733,7 @@ public class AWPlayerReportTicket extends AWTicket {
         this.evidenceDetails = evidenceDetailsMapping.getAsString();
 
         // check username
-        this.accusedUser = RobloxAPI.getUserByInput(this.accusedUsername);
+        this.accusedUser = RobloxAPI.getUserByInput(this.accusedUsername, true);
 
         if (this.accusedUser == null) {
             String errorMessage = BotCommand.getUnknownUsernameDescriptor(this.accusedUsername);

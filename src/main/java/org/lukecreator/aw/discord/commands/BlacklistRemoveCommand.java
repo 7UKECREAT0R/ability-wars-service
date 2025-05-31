@@ -69,7 +69,7 @@ public class BlacklistRemoveCommand extends BotCommand {
 
         String targetInput = userMapping.getAsString();
 
-        RobloxAPI.User target = RobloxAPI.getUserByInput(targetInput);
+        RobloxAPI.User target = RobloxAPI.getUserByInput(targetInput, true);
         if (target == null) {
             String descriptor = BotCommand.getUnknownUsernameDescriptor(targetInput);
             e.reply(descriptor).setEphemeral(true).queue();
