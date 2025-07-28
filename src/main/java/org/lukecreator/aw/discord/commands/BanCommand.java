@@ -57,6 +57,8 @@ public class BanCommand extends BotCommand {
             return;
         }
 
+        e.deferReply().queue();
+
         AWPlayerReportTicket ticket = null;
         if (e.getChannelType() == ChannelType.TEXT) {
             TextChannel channel = e.getChannel().asTextChannel();
@@ -68,13 +70,20 @@ public class BanCommand extends BotCommand {
         final Long ticketId = ticket == null ? null : ticket.id;
         final Long evidenceId = ticket == null ? null : ticket.getEvidenceId();
 
-        e.deferReply().queue();
+        // build the #in-game-punishments message
+        final String evidenceURL = ticket == null ? null : ticket.getEvidenceURL();
+        final String report = evidenceURL == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
+                (e.getUser(), ticket.getAccusedUser(), reason, "manually banned", evidenceURL);
+
         PendingRequest request = new BanRequest(PendingRequest.getNextRequestId(), targetUser.userId(), responsibleModerator, reason, true, 0L, evidenceId, ticketId)
                 .onFulfilled(ignored -> {
-                    String successMessage = evidenceId != null ?
-                            "Successfully banned user [%s](%s) and filed report in <#%d>".formatted(targetUser.username(), targetUser.getProfileURL(), AWPlayerReportTicket.IN_GAME_PUNISHMENTS_CHANNEL) :
+                    String successMessage = report != null ?
+                            "Successfully banned user [%s](%s). Filing report in <#%d>.".formatted(targetUser.username(), targetUser.getProfileURL(), AWPlayerReportTicket.IN_GAME_PUNISHMENTS_CHANNEL) :
                             "Successfully banned user [%s](%s).".formatted(targetUser.username(), targetUser.getProfileURL());
                     e.getInteraction().getHook().editOriginal(successMessage).queue();
+
+                    if (report != null)
+                        AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report);
                 })
                 .onNoPermission(() -> e.getInteraction().getHook().editOriginal("You don't have permission to ban users in-game.").queue());
         PendingRequests.add(request);

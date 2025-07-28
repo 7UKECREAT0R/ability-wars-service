@@ -18,6 +18,7 @@ public class AWDatabase {
 
     public static void init() throws Exception {
         connection = DriverManager.getConnection(DB_URL);
+        connection.setAutoCommit(true);
         if (connection == null)
             throw new Exception("Something happened and the database couldn't be connected to.");
         System.out.println("Connected to database.");

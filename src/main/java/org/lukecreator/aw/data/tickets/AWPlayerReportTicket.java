@@ -84,6 +84,24 @@ public class AWPlayerReportTicket extends AWTicket {
     }
 
     /**
+     * Builds a string message that will go in the #in-game-punishments channel in Discord.
+     *
+     * @param bannedBy       The Discord of the moderator that the user was banned by.
+     * @param userBanned     The user that was banned.
+     * @param ruleBrokenName The name of the rule that was broken.
+     * @param exploitName    The name of the exploit that was used.
+     * @param evidenceURL    The URL to the evidence.
+     * @return A string organizing all the input information into a nicely formatted string.
+     */
+    public static String buildInGamePunishmentsRecord(User bannedBy, RobloxAPI.User userBanned, String ruleBrokenName, String exploitName, String evidenceURL) {
+        return userBanned.username() +
+                " - (" + userBanned.userId() + ") - " +
+                "[Roblox Profile](" + userBanned.getProfileURL() + ") - Banned by " + bannedBy.getAsMention() + '\n' +
+                ruleBrokenName + " - " + exploitName + '\n' +
+                evidenceURL;
+    }
+
+    /**
      * Send a message in the #in-game-punishments channel in Discord.
      *
      * @param jda     The API instance to use.
@@ -723,7 +741,7 @@ public class AWPlayerReportTicket extends AWTicket {
         ModalMapping evidenceDetailsMapping = event.getValue("details");
 
         if (usernameMapping == null || ruleMapping == null || evidenceMapping == null || evidenceDetailsMapping == null) {
-            event.reply("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").setEphemeral(true).queue();
+            event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
             return false;
         }
 
@@ -737,7 +755,7 @@ public class AWPlayerReportTicket extends AWTicket {
 
         if (this.accusedUser == null) {
             String errorMessage = BotCommand.getUnknownUsernameDescriptor(this.accusedUsername);
-            event.reply(errorMessage).setEphemeral(true).queue();
+            event.getHook().editOriginal(errorMessage).queue();
             return false;
         }
 
@@ -745,7 +763,7 @@ public class AWPlayerReportTicket extends AWTicket {
         Long reporterRobloxId = BloxlinkAPI.lookupRobloxId(this.ownerDiscordId);
         if (reporterRobloxId != null) {
             if (this.accusedUser.userId() == reporterRobloxId) {
-                event.reply("You can't report yourself!").setEphemeral(true).queue();
+                event.getHook().editOriginal("You can't report yourself!").queue();
                 return false;
             }
         }
@@ -756,9 +774,9 @@ public class AWPlayerReportTicket extends AWTicket {
             if (!isSupportedService(this.evidenceURL)) {
                 String serviceName = getKnownServiceName(this.evidenceURL);
                 if (serviceName == null)
-                    event.reply("We don't support the video host you provided ([this one](" + this.evidenceURL + ")) for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").setEphemeral(true).queue();
+                    event.getHook().editOriginal("We don't support the video host you provided ([this one](" + this.evidenceURL + ")) for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
                 else
-                    event.reply("We don't support " + serviceName + " for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").setEphemeral(true).queue();
+                    event.getHook().editOriginal("We don't support " + serviceName + " for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
                 return false;
             }
             // supported service. create an evidence entry for it
@@ -779,15 +797,13 @@ public class AWPlayerReportTicket extends AWTicket {
 
         // if the user is currently banned, cancel and let the reporter know
         if (player.bans.isCurrentlyBanned()) {
-            event.reply("The user you tried to report has already been banned! Thanks for your efforts!").setEphemeral(true).queue();
+            event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
             return false;
         }
 
         // check if any other tickets are actively open reporting the same user and link them together
         this.afterCacheLoaded();
 
-        // required as per method documentation
-        event.deferReply(true).queue();
         return true;
     }
 

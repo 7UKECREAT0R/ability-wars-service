@@ -132,6 +132,7 @@ public abstract class AWTicket {
         Modal modal = ticket.createInputModal(nextTicketID);
 
         if (modal == null) {
+            AWTicket.decrementNextAvailableTicketID();
             throw new IllegalArgumentException("Something went wrong when trying to open a ticket. Try again in a couple minutes. If this keeps happening, contact a developer.");
         }
 
@@ -406,7 +407,7 @@ public abstract class AWTicket {
     /**
      * Processes the user's responses to the modal returned from {@link #createInputModal(long)} into this Ticket's input questions, kind of like a fancy setter.
      * <p>
-     * This method MUST reply to the event with a message.
+     * This method CANNOT reply to the event with a message, it must edit the deferred reply.
      * <ul>
      *     <li>If the method returns <c>true</c>, the caller will likely be editing the message immediately after, so a defer is recommended.</li>
      *     <li>If the method returns <c>false</c>, the caller should halt and not modify the message further.</li>

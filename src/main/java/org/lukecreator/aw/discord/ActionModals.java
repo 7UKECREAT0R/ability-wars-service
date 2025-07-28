@@ -257,14 +257,8 @@ public class ActionModals {
 
         // file a physical report in the #in-game-punishments
         if (ticket.hasEvidence()) {
-            StringBuilder physicalReport = new StringBuilder();
-            RobloxAPI.User accused = ticket.getAccusedUser();
-            physicalReport.append(accused.username());
-            physicalReport.append(" - (").append(accused.userId()).append(") - ");
-            physicalReport.append("[Roblox Profile](").append(accused.getProfileURL()).append(") - Banned by ").append(event.getUser().getAsMention()).append('\n');
-            physicalReport.append(ticket.getRuleBroken()).append(" - ").append(exploit).append('\n');
-            physicalReport.append(ticket.getEvidenceURL());
-            AWPlayerReportTicket.sendInGamePunishmentsMessage(event.getJDA(), physicalReport.toString()).queue();
+            String physicalReport = AWPlayerReportTicket.buildInGamePunishmentsRecord(event.getUser(), ticket.getAccusedUser(), ticket.getRuleBroken(), exploit, ticket.getEvidenceURL());
+            AWPlayerReportTicket.sendInGamePunishmentsMessage(event.getJDA(), physicalReport).queue();
         }
     }
 

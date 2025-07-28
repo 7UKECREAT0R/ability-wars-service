@@ -34,6 +34,9 @@ public class StatsCommand extends BotCommand {
     public void execute(SlashCommandInteractionEvent e) throws SQLException {
         RobloxAPI.User user;
 
+        // start "thinking" as the bot, since the request could take multiple seconds
+        e.deferReply().queue();
+
         if (e.getOption("target") == null) {
             long discordId = e.getUser().getIdLong();
             Long attemptedRobloxId = DiscordRobloxLinks.robloxIdFromDiscordId(discordId);
@@ -41,13 +44,13 @@ public class StatsCommand extends BotCommand {
                 // try bloxlink API
                 attemptedRobloxId = BloxlinkAPI.lookupRobloxId(discordId);
                 if (attemptedRobloxId == null) {
-                    e.reply("Couldn't figure out your Roblox account! Try manually putting your username into the command.").setEphemeral(false).queue();
+                    e.getInteraction().getHook().editOriginal("Couldn't figure out your Roblox account! Try manually putting your username into the command.").queue();
                     return;
                 }
             }
             user = RobloxAPI.getUserById(attemptedRobloxId);
             if (user == null) {
-                e.reply("Couldn't figure out your Roblox account! Try manually putting your username into the command.").setEphemeral(false).queue();
+                e.getInteraction().getHook().editOriginal("Couldn't figure out your Roblox account! Try manually putting your username into the command.").queue();
                 return;
             }
         } else {
@@ -58,15 +61,12 @@ public class StatsCommand extends BotCommand {
             user = RobloxAPI.getUserByInput(username, true);
 
             if (user == null) {
-                e.reply(getUnknownUsernameDescriptor(username)).queue();
+                e.getInteraction().getHook().editOriginal(getUnknownUsernameDescriptor(username)).queue();
                 return;
             }
         }
 
         long robloxId = user.userId();
-
-        // start "thinking" as the bot, since the request could take multiple seconds
-        e.deferReply().queue();
 
         // make a request for user information
         PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), robloxId)

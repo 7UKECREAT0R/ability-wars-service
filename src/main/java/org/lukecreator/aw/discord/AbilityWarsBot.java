@@ -377,11 +377,15 @@ public class AbilityWarsBot extends ListenerAdapter {
                     return;
                 }
                 try {
+                    // 2025 july update: migrate over to deferred reply
+                    event.deferReply(true).queue();
+
                     // load the responses into the data structure
                     // will also reply to the event if the data is invalid
                     boolean success = ticket.loadFromModalResponse(event);
 
-                    if (!success) return; // stop here, input was invalid
+                    if (!success)
+                        return; // stop here, input was invalid
 
                     // open the channel
                     ticket.createOrGetChannel(event.getJDA(), (channel -> {

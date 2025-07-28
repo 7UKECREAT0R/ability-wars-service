@@ -720,7 +720,7 @@ public abstract class AWUnbanTicket extends AWTicket {
         ModalMapping userIdMapping = event.getValue("user-id");
 
         if (discordOrRobloxMapping == null || userIdMapping == null) {
-            event.reply("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").setEphemeral(true).queue();
+            event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
             return false;
         }
 
@@ -736,8 +736,8 @@ public abstract class AWUnbanTicket extends AWTicket {
                 this.robloxUserToUnban = RobloxAPI.getUserById(userId);
 
                 if (this.robloxUserToUnban == null) {
-                    event.reply("Couldn't find any users on Roblox with the ID `" + userId + "`. Please try again.\n" +
-                            "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").setEphemeral(true).queue();
+                    event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userId + "`. Please try again.\n" +
+                            "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
                     return false;
                 }
             }
@@ -746,25 +746,22 @@ public abstract class AWUnbanTicket extends AWTicket {
             if (this.isForDiscord) {
                 List<User> possibleDiscordUsers = event.getJDA().getUsersByName(userIdString, false);
                 if (possibleDiscordUsers.isEmpty()) {
-                    event.reply("Your input for \"User ID\" was not valid. Please input your Discord ID.\n" +
-                            "-# To get your Discord ID, right click your name and click \"Copy User ID\". If you don't see that option, go to `Settings` → `Advanced` → Turn on `Developer Mode`.").setEphemeral(true).queue();
+                    event.getHook().editOriginal("Your input for \"User ID\" was not valid. Please input your Discord ID.\n" +
+                            "-# To get your Discord ID, right click your name and click \"Copy User ID\". If you don't see that option, go to `Settings` → `Advanced` → Turn on `Developer Mode`.").queue();
                     return false;
                 }
                 this.discordIdToUnban = possibleDiscordUsers.get(0).getIdLong();
             } else {
                 RobloxAPI.User possibleRobloxUser = RobloxAPI.getUserByCurrentUsername(userIdString);
                 if (possibleRobloxUser == null) {
-                    event.reply("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +
-                            "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").setEphemeral(true).queue();
+                    event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +
+                            "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
                     return false;
                 }
                 this.robloxIdToUnban = possibleRobloxUser.userId();
                 this.robloxUserToUnban = possibleRobloxUser;
             }
         }
-
-        // start "thinking"
-        event.deferReply(true).queue();
 
         if (this.isForDiscord) {
             // make sure the user is banned from the Ability Wars server
