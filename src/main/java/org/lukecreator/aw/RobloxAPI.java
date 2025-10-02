@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
 
 import java.net.URI;
@@ -17,14 +18,27 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RobloxAPI {
     private static final HttpClient client = HttpClient.newHttpClient();
     private static final String USERS_SEARCH_API = "https://users.roblox.com/v1/usernames/users";
     private static final String USER_INFO_API = "https://users.roblox.com/v1/users/";
     private static final String GAMEPASSES_API = "https://apis.roblox.com/game-passes/v1/game-passes/%d/product-info";
+    private static final String AVATAR_BUST_API = "https://thumbnails.roblox.com/v1/users/avatar-bust?";
     private static final HashMap<Long, Gamepass> cachedGamepasses = new HashMap<>();
     private static final Pattern userMentionPattern = Message.MentionType.USER.getPattern();
+
+    private static String getAvatarBustApiURL(long[] userIds, int size, boolean isCircular) {
+        return "%suserIds=%s&size=%dx%d&isCircular=%s".formatted(AVATAR_BUST_API,
+                Stream.of(userIds).map(String::valueOf).collect(Collectors.joining(",")),
+                size, size, String.valueOf(isCircular).toLowerCase());
+    }
+
+    private static String getAvatarBustApiURL(long userId, int size, boolean isCircular) {
+        return "%suserIds=%d&size=%dx%d&isCircular=%s".formatted(AVATAR_BUST_API, userId, size, size, String.valueOf(isCircular).toLowerCase());
+    }
 
     private static long convertForeignDate(String d) {
         return Instant.parse(d).toEpochMilli();
@@ -184,6 +198,34 @@ public class RobloxAPI {
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
+    }
+
+    /**
+     * Generates and returns the URL of the avatar bust image for the given Roblox user ID.
+     * This method fetches the avatar image by making an external HTTP request to the Roblox API.
+     * If the HTTP request fails or the response is invalid, this method returns null.
+     *
+     * @param userId The Roblox ID of the user whose avatar bust image URL is to be retrieved.
+     * @return A string representing the URL of the user's avatar bust image, or null if unable to retrieve.
+     */
+    public static @Nullable String renderAvatarBustImageURL(long userId) {
+        String requestURL = getAvatarBustApiURL(userId, 180, false);
+        HttpRequest request = HttpRequest.newBuilder(URI.create(requestURL))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200)
+                return null;
+            JsonObject uselessJson = JsonParser.parseString(response.body()).getAsJsonObject();
+            JsonArray usefulJsonList = uselessJson.getAsJsonArray("data").getAsJsonArray();
+            JsonObject usefulJson = usefulJsonList.get(0).getAsJsonObject();
+            return usefulJson.get("imageUrl").getAsString();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

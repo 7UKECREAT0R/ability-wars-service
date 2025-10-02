@@ -74,6 +74,7 @@ public class AWPlayerReportTicket extends AWTicket {
     private String evidenceDetails;
     private Long evidenceId;
     private RobloxAPI.User accusedUser;
+    private String accusedUserBustImageURL;
 
     public AWPlayerReportTicket(long id,
                                 long discordChannelId, long openedTimestamp,
@@ -764,6 +765,8 @@ public class AWPlayerReportTicket extends AWTicket {
             return false;
         }
 
+        this.accusedUserBustImageURL = RobloxAPI.renderAvatarBustImageURL(this.accusedUser.userId());
+
         // try to get the roblox username of the reporter, so we can make sure they're not reporting themselves
         Long reporterRobloxId = BloxlinkAPI.lookupRobloxId(this.ownerDiscordId);
         if (reporterRobloxId != null) {
@@ -868,6 +871,8 @@ public class AWPlayerReportTicket extends AWTicket {
         User ticketOwner = jda.getUserById(this.ownerDiscordId);
 
         EmbedBuilder eb = new EmbedBuilder();
+        if (this.accusedUserBustImageURL != null)
+            eb.setImage(this.accusedUserBustImageURL);
         eb.setColor(new Color(103, 110, 233));
         eb.setTitle("Ticket " + this.id);
         if (ticketOwner == null)
