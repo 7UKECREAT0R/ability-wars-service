@@ -6,7 +6,7 @@
 A service which lets Roblox connect with a Discord Bot, lets mods run in-game commands from Discord, logs moderator activity, supports both player report and ban appeal tickets, and keeps track of bans and ban evidence.
 
 ### Too long, did read:
-A Java application which runs both a [Spring Boot](https://spring.io/projects/spring-boot) web API, and a Discord Bot with [JDA](https://github.com/discord-jda/JDA). In tandem, these two services drive the moderation side of the Roblox game [Ability Wars](https://www.roblox.com/games/8260276694/UPDATE-Ability-Wars). I developed this as a portfolio-building exercise, learning experience for Spring Boot, and just for fun. 😁 Despite this though, this software is an absolute powerhouse with deep integration, solid infrastructure, and battle-tested code.
+A Java application which runs both a [Spring Boot](https://spring.io/projects/spring-boot) web API, and a Discord Bot with [JDA](https://github.com/discord-jda/JDA). In tandem, these two services drive the moderation side of the Roblox game [Ability Wars](https://www.roblox.com/games/8260276694/UPDATE-Ability-Wars). I developed this as a portfolio-building exercise, learning experience for Spring Boot, and just for fun. 😁 Despite this though, this software is an absolute powerhouse with deep integration and pretty solid infrastructure. I think there is some scalability issues when it comes to how the database code works, but overall it's really solid and fast.
 
 ### Documentation
 I'm releasing this to hopefully help out someone interested in doing something similar for their own game with a similar tech stack. All the source code is documented and commented to the BEST of my ability to hopefully enable easy understanding and modification. It's REALLY biased for Ability Wars, but that's just because that's what it's designed for. Hack this code up all you want and make it your own. There's plenty of examples here to learn from!
@@ -25,12 +25,12 @@ I'm releasing this to hopefully help out someone interested in doing something s
 - Bloxlink integration to make commands as foolproof as possible.
 - Discord and Roblox account-based blacklisting for appeals and a rich incident lookup system for recalling information.
 
-# I want to use this for my game! How do I use it?
+# How do I use it?
 If you don't have experience in Java/JDA/Spring or it's not immediately obvious how to setup this project and begin working on it, then this project might not be the pick for you.
-You're fully allowed to use this for your own Roblox game (within license terms), but it will require **lots** of effort to deploy and hook it up to your game.
+You're fully allowed to use this for your own Roblox game (within license terms), but it will require **lots** of effort to deploy and hook it up to your game. 
 
 ### Polling
-Once you have the Spring application exposed on a server/VPS, you'll need to call the `/poll` endpoint every couple of seconds and `/fulfill` the requests accordingly
+Once you have the Spring application exposed on a server/VPS, you'll need to call the `/poll` endpoint every couple of seconds and `/fulfill` the requests accordingly.
 You can make/receive more than one request per call on either of the endpoints. Additionally, it's good to note you can `/fulfill` anything that happens, even if you don't have a fulfillment ID.
 
 ### Environment Variables
