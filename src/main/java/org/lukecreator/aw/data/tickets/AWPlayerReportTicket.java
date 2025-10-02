@@ -554,17 +554,24 @@ public class AWPlayerReportTicket extends AWTicket {
             this.evidenceDetails = json.get("details").getAsString();
     }
 
-    @Override
-    public void afterCacheLoaded() {
-        // check if any other tickets are actively open reporting the same user and link them together
+    public void collectRelatedTickets(boolean modifyOtherTickets) {
         Collection<AWTicket> openTickets = AWTicketsManager.getOpenTickets();
         this.relatedTickets.clear();
         for (AWTicket _ticket : openTickets) {
             if (!(_ticket instanceof AWPlayerReportTicket ticket))
                 continue;
-            if (ticket.accusedUsername.equalsIgnoreCase(this.accusedUsername))
+            if (ticket.accusedUsername.equalsIgnoreCase(this.accusedUsername)) {
                 this.relatedTickets.add(ticket);
+                if (modifyOtherTickets)
+                    ticket.relatedTickets.add(this);
+            }
         }
+    }
+
+    @Override
+    public void afterCacheLoaded() {
+        // check if any other tickets are actively open reporting the same user and link them together
+        this.collectRelatedTickets(false);
 
         // load player
         if (this.accusedUser == null)
@@ -818,7 +825,7 @@ public class AWPlayerReportTicket extends AWTicket {
         }
 
         // check if any other tickets are actively open reporting the same user and link them together
-        this.afterCacheLoaded();
+        this.collectRelatedTickets(true);
 
         return true;
     }

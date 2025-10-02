@@ -340,6 +340,27 @@ public abstract class AWUnbanTicket extends AWTicket {
      */
     protected abstract boolean isAppeal();
 
+    private void collectRelatedTickets(boolean modifyOtherTickets) {
+        Collection<AWTicket> openTickets = AWTicketsManager.getOpenTickets();
+        this.relatedTickets.clear();
+        for (AWTicket _ticket : openTickets) {
+            if (!(_ticket instanceof AWUnbanTicket ticket))
+                continue;
+            if (ticket.isForDiscord != this.isForDiscord)
+                continue;
+            if (ticket.isForDiscord && this.discordIdToUnban == ticket.discordIdToUnban) {
+                this.relatedTickets.add(ticket);
+                if (modifyOtherTickets)
+                    ticket.relatedTickets.add(this);
+            }
+            if (!ticket.isForDiscord && this.robloxIdToUnban == ticket.robloxIdToUnban) {
+                this.relatedTickets.add(ticket);
+                if (modifyOtherTickets)
+                    ticket.relatedTickets.add(this);
+            }
+        }
+    }
+
     @Override
     public void afterCacheLoaded() {
         if (!this.isForDiscord && this.robloxIdToUnban != 0 && this.robloxUserToUnban == null && this.playerToUnban == null) {
@@ -348,18 +369,7 @@ public abstract class AWUnbanTicket extends AWTicket {
         }
 
         // check if any other tickets are actively open requesting an unban for the same user and link them together
-        Collection<AWTicket> openTickets = AWTicketsManager.getOpenTickets();
-        this.relatedTickets.clear();
-        for (AWTicket _ticket : openTickets) {
-            if (!(_ticket instanceof AWUnbanTicket ticket))
-                continue;
-            if (ticket.isForDiscord != this.isForDiscord)
-                continue;
-            if (ticket.isForDiscord && this.discordIdToUnban == ticket.discordIdToUnban)
-                this.relatedTickets.add(ticket);
-            if (!ticket.isForDiscord && this.robloxIdToUnban == ticket.robloxIdToUnban)
-                this.relatedTickets.add(ticket);
-        }
+        this.collectRelatedTickets(false);
     }
 
     /**
@@ -893,8 +903,8 @@ public abstract class AWUnbanTicket extends AWTicket {
             }
         }
 
-        // check for any other tickets which are appealing for the same account
-        this.afterCacheLoaded();
+        // check for any other tickets that are appealing for the same account
+        this.collectRelatedTickets(true);
         return true;
     }
 }
