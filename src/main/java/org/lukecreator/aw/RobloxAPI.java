@@ -31,13 +31,13 @@ public class RobloxAPI {
     private static final Pattern userMentionPattern = Message.MentionType.USER.getPattern();
 
     private static String getAvatarBustApiURL(long[] userIds, int size, boolean isCircular) {
-        return "%suserIds=%s&size=%dx%d&isCircular=%s".formatted(AVATAR_BUST_API,
+        return "%suserIds=%s&size=%dx%d&format=Png&isCircular=%s".formatted(AVATAR_BUST_API,
                 Stream.of(userIds).map(String::valueOf).collect(Collectors.joining(",")),
                 size, size, String.valueOf(isCircular).toLowerCase());
     }
 
     private static String getAvatarBustApiURL(long userId, int size, boolean isCircular) {
-        return "%suserIds=%d&size=%dx%d&isCircular=%s".formatted(AVATAR_BUST_API, userId, size, size, String.valueOf(isCircular).toLowerCase());
+        return "%suserIds=%d&size=%dx%d&format=Png&isCircular=%s".formatted(AVATAR_BUST_API, userId, size, size, String.valueOf(isCircular).toLowerCase());
     }
 
     private static long convertForeignDate(String d) {
@@ -209,7 +209,7 @@ public class RobloxAPI {
      * @return A string representing the URL of the user's avatar bust image, or null if unable to retrieve.
      */
     public static @Nullable String renderAvatarBustImageURL(long userId) {
-        String requestURL = getAvatarBustApiURL(userId, 180, false);
+        String requestURL = getAvatarBustApiURL(userId, 352, false);
         HttpRequest request = HttpRequest.newBuilder(URI.create(requestURL))
                 .header("Accept", "application/json")
                 .GET()

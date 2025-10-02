@@ -284,7 +284,7 @@ public abstract class AWTicket {
      */
     public static AWTicket[] loadByOwner(UserSnowflake owner, int limit) throws SQLException {
         long ownerId = owner.getIdLong();
-        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? LIMIT ?")) {
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? LIMIT ? ORDER BY opened_timestamp DESC")) {
             statement.setLong(1, ownerId);
             statement.setInt(2, limit);
             return getAWTicketsByStatement(statement);
@@ -302,7 +302,7 @@ public abstract class AWTicket {
      */
     public static AWTicket[] loadByOwner(UserSnowflake owner, int limit, AWTicket.Type type) throws SQLException {
         long ownerId = owner.getIdLong();
-        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? AND type = ? LIMIT ?")) {
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? AND type = ? LIMIT ? ORDER BY opened_timestamp DESC")) {
             statement.setLong(1, ownerId);
             statement.setInt(2, type.id);
             statement.setInt(3, limit);
@@ -319,7 +319,7 @@ public abstract class AWTicket {
      */
     public static AWTicket[] loadByCloser(UserSnowflake closer, int limit) throws SQLException {
         long closerId = closer.getIdLong();
-        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? LIMIT ?")) {
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? LIMIT ? ORDER BY opened_timestamp DESC")) {
             statement.setLong(1, closerId);
             statement.setInt(2, limit);
             return getAWTicketsByStatement(statement);
@@ -336,7 +336,7 @@ public abstract class AWTicket {
      */
     public static AWTicket[] loadByCloser(UserSnowflake closer, int limit, AWTicket.Type type) throws SQLException {
         long closerId = closer.getIdLong();
-        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? AND type = ? LIMIT ?")) {
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? AND type = ? LIMIT ? ORDER BY opened_timestamp DESC")) {
             statement.setLong(1, closerId);
             statement.setInt(2, type.id);
             statement.setInt(3, limit);

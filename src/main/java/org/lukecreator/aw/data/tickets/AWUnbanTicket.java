@@ -142,7 +142,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                 .setDescription("If the bot shows that you're not currently banned, but you still can't join the game, it's possible that you are IP banned. We did not ban your account and **we have no way to unban it, so please do not open a ticket about it.**")
                 .addField("What to do next?", "You must get unbanned on any/all accounts that are banned from Ability Wars on the same IP as you in order for this kind of ban to be lifted.", false)
                 .addField("What constitutes as \"same IP\"?", "Same IP in this case usually means any accounts which have been played in the same house before. This is almost always alt-accounts, but sometimes could mean other family members.", false)
-                .setFooter("Thanks for understanding. This is on Roblox's side, and *none* of the staff can do anything about this kind of ban.")
+                .setFooter("Thanks for understanding. This is on Roblox's side, and none of the staff can do anything about this kind of ban.")
                 .build();
     }
 
@@ -153,7 +153,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                 .setDescription("Your ban reason indicates that you're dealing with an *IP Ban* from *Roblox*. We did not ban your account `%s`, and **we have no way to unban it, so please do not open a ticket about it.**".formatted(bannedUsername))
                 .addField("What to do next?", "You must get unbanned on any/all accounts that are banned from Ability Wars on the same IP as you in order for this kind of ban to be lifted.", false)
                 .addField("What constitutes as \"same IP\"?", "Same IP in this case usually means any accounts which have been played in the same house before. This is almost always alt-accounts, but sometimes could mean other family members.", false)
-                .setFooter("Thanks for understanding. This is on Roblox's side, and *none* of the staff can do anything about this kind of ban.")
+                .setFooter("Thanks for understanding. This is on Roblox's side, and none of the staff can do anything about this kind of ban.")
                 .build();
     }
 

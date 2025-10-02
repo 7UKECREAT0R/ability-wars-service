@@ -880,7 +880,7 @@ public class AWPlayerReportTicket extends AWTicket {
 
         EmbedBuilder eb = new EmbedBuilder();
         if (this.accusedUserBustImageURL != null)
-            eb.setImage(this.accusedUserBustImageURL);
+            eb.setThumbnail(this.accusedUserBustImageURL);
         eb.setColor(new Color(103, 110, 233));
         eb.setTitle("Ticket " + this.id);
         if (ticketOwner == null)

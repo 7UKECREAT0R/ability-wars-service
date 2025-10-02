@@ -57,6 +57,10 @@ public class RobloxSearchCommand extends BotCommand {
         if (bio != null && !bio.isBlank())
             eb.addField("Bio", user.bio(), false);
 
+        String avatarBustImage = RobloxAPI.renderAvatarBustImageURL(user.userId());
+        if (avatarBustImage != null)
+            eb.setThumbnail(avatarBustImage);
+
         if (linkedDiscordId != null) {
             // extended information
             boolean isAdmin = ApprovedAwesomeAdministratorsAdmins.isApprovedAwesomeAdministratorAdmin(linkedDiscordId);
