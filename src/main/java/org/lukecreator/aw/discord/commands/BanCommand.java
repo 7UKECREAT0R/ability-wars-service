@@ -83,7 +83,7 @@ public class BanCommand extends BotCommand {
                     e.getInteraction().getHook().editOriginal(successMessage).queue();
 
                     if (report != null)
-                        AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report);
+                        AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report).queue();
                 })
                 .onNoPermission(() -> e.getInteraction().getHook().editOriginal("You don't have permission to ban users in-game.").queue());
         PendingRequests.add(request);

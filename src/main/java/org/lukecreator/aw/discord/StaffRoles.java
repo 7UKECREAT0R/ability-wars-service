@@ -24,6 +24,7 @@ public class StaffRoles {
             1329640373991248003L,   // Administrator
             1329628247595683860L,   // Senior Moderator
             1329628248279093281L,   // Moderator
+            1329628384418070640L,   // Community Moderator
 
             // ability ward,
             978531510711910411L,    // Luke
