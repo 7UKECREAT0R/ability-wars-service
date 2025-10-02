@@ -98,6 +98,7 @@ public class AWEvidence {
 
     /**
      * Removes a specific evidence entry from the database identified by its unique ID.
+     * Also unlinks any connections to tickets that the given evidence entry may have.
      *
      * @param id The unique identifier of the evidence entry to be removed.
      * @throws SQLException If an error occurs while executing the SQL statement.

@@ -104,7 +104,9 @@ public class StaffRoles {
 
         if (e.getInteraction().getHook().isExpired()) {
             MessageChannel channel = e.getChannel();
-            channel.sendMessageEmbeds(eb.build()).queue(message -> message.delete().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS));
+            channel.sendMessageEmbeds(eb.build()).queue(message -> message.delete().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS, s -> {
+            }, f -> {
+            }));
         } else {
             if (e.getInteraction().isAcknowledged()) {
                 e.getInteraction().getHook()
@@ -112,7 +114,9 @@ public class StaffRoles {
                         .setContent(null)
                         .queue();
             } else {
-                e.replyEmbeds(eb.build()).setEphemeral(false).queue(hook -> hook.deleteOriginal().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS));
+                e.replyEmbeds(eb.build()).setEphemeral(false).queue(hook -> hook.deleteOriginal().queueAfter(5, java.util.concurrent.TimeUnit.SECONDS, s -> {
+                }, f -> {
+                }));
             }
         }
         return true;

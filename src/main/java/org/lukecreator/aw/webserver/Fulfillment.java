@@ -1,6 +1,7 @@
 package org.lukecreator.aw.webserver;
 
 import com.google.gson.JsonObject;
+import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.webserver.fulfillments.*;
 
 import java.sql.SQLException;
@@ -61,5 +62,5 @@ public abstract class Fulfillment {
      * @param request Can be null. If not, this will be the request that's being responded to with this fulfillment.
      * @throws SQLException If something goes wrong with the SQL queries.
      */
-    public abstract void process(PendingRequest request) throws SQLException;
+    public abstract void process(@Nullable PendingRequest request) throws SQLException;
 }

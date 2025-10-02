@@ -59,13 +59,14 @@ public class BanCommand extends BotCommand {
 
         e.deferReply().queue();
 
-        AWPlayerReportTicket ticket = null;
+        AWPlayerReportTicket _ticket = null;
         if (e.getChannelType() == ChannelType.TEXT) {
             TextChannel channel = e.getChannel().asTextChannel();
-            AWTicket _ticket = AWTicketsManager.getTicketFromCacheByDiscordChannel(channel);
-            if (_ticket instanceof AWPlayerReportTicket t)
-                ticket = t;
+            AWTicket __ticket = AWTicketsManager.getTicketFromCacheByDiscordChannel(channel);
+            if (__ticket instanceof AWPlayerReportTicket t)
+                _ticket = t;
         }
+        final AWPlayerReportTicket ticket = _ticket;
 
         final Long ticketId = ticket == null ? null : ticket.id;
         final Long evidenceId = ticket == null ? null : ticket.getEvidenceId();
@@ -73,7 +74,7 @@ public class BanCommand extends BotCommand {
         // build the #in-game-punishments message
         final String evidenceURL = ticket == null ? null : ticket.getEvidenceURL();
         final String report = evidenceURL == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
-                (e.getUser(), ticket.getAccusedUser(), reason, "manually banned", evidenceURL);
+                (e.getUser(), targetUser, reason, "Manually banned", evidenceURL);
 
         PendingRequest request = new BanRequest(PendingRequest.getNextRequestId(), targetUser.userId(), responsibleModerator, reason, true, 0L, evidenceId, ticketId)
                 .onFulfilled(ignored -> {
@@ -81,7 +82,7 @@ public class BanCommand extends BotCommand {
                             "Successfully banned user [%s](%s). Filing report in <#%d>.".formatted(targetUser.username(), targetUser.getProfileURL(), AWPlayerReportTicket.IN_GAME_PUNISHMENTS_CHANNEL) :
                             "Successfully banned user [%s](%s).".formatted(targetUser.username(), targetUser.getProfileURL());
                     e.getInteraction().getHook().editOriginal(successMessage).queue();
-
+                    
                     if (report != null)
                         AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report).queue();
                 })

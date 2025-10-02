@@ -37,8 +37,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -61,6 +60,17 @@ public abstract class AWUnbanTicket extends AWTicket {
             "Yoohoo! %s! I'm not trying to sound rude, but you're really bad at this waiting thing, aren't you? Please stop pinging staff, it's a disturbance.",
             "Okay, %s, if you ping staff again, this ticket will be closed and you'll be knocked back to the bottom of the queue. Please, for the love of all that is holy, be patient."
     };
+
+    /**
+     * A list of tickets which also are requesting an unban for the same user.
+     * When using this to mass close tickets, make sure to check that the ticket hasn't already been closed, since it won't be automatically removed.
+     * <ul>
+     * <li>If this ticket is resolved <b>with</b> the user being unbanned, all of these tickets should be closed too.</li>
+     * <li>If this ticket is resolved <b>without</b> the user being unbanned, then nothing should happen.</li>
+     * </ul>
+     */
+    private final List<AWUnbanTicket> relatedTickets = new ArrayList<>();
+
     /**
      * Is this a ticket for a Discord unban?
      * <ul>
@@ -332,14 +342,28 @@ public abstract class AWUnbanTicket extends AWTicket {
 
     @Override
     public void afterCacheLoaded() {
-        if (!this.isForDiscord && this.robloxIdToUnban != 0) {
+        if (!this.isForDiscord && this.robloxIdToUnban != 0 && this.robloxUserToUnban == null && this.playerToUnban == null) {
             this.robloxUserToUnban = RobloxAPI.getUserById(this.robloxIdToUnban);
             this.playerToUnban = AWPlayer.loadFromDatabase(this.robloxIdToUnban, true, true, true, false);
+        }
+
+        // check if any other tickets are actively open requesting an unban for the same user and link them together
+        Collection<AWTicket> openTickets = AWTicketsManager.getOpenTickets();
+        this.relatedTickets.clear();
+        for (AWTicket _ticket : openTickets) {
+            if (!(_ticket instanceof AWUnbanTicket ticket))
+                continue;
+            if (ticket.isForDiscord != this.isForDiscord)
+                continue;
+            if (ticket.isForDiscord && this.discordIdToUnban == ticket.discordIdToUnban)
+                this.relatedTickets.add(ticket);
+            if (!ticket.isForDiscord && this.robloxIdToUnban == ticket.robloxIdToUnban)
+                this.relatedTickets.add(ticket);
         }
     }
 
     /**
-     * Parent implementation of {@link AWTicket#getInputQuestionsJSON()}.
+     * Parent implementation of {@link #getInputQuestionsJSON()}.
      *
      * @return A new JSON object to add your input questions properties to. User information is already attached.
      */
@@ -351,7 +375,7 @@ public abstract class AWUnbanTicket extends AWTicket {
     }
 
     /**
-     * Parent implementation of {@link AWTicket#processInputQuestionsJSON(JsonObject)}.
+     * Parent implementation of {@link #processInputQuestionsJSON(JsonObject)}.
      *
      * @param json The JSON object to parse from.
      */
@@ -519,6 +543,17 @@ public abstract class AWUnbanTicket extends AWTicket {
         eb.addField("Opened By", "<@%d> - Discord ID: %1$d".formatted(this.ownerDiscordId), true);
 
         eb = this.finishInitialMessageEmbed(eb);
+
+        if (!this.relatedTickets.isEmpty()) {
+            long[] ticketIds = this.relatedTickets.stream()
+                    .mapToLong(AWTicket::getDiscordChannelId)
+                    .toArray();
+            StringJoiner joiner = new StringJoiner(", ");
+            for (long ticketId : ticketIds)
+                joiner.add("<#" + ticketId + ">");
+            String relatedTicketsString = joiner.toString();
+            eb.addField("Related Ticket(s)", relatedTicketsString, false);
+        }
 
         if (this.isForDiscord) {
             return List.of(eb.build());
@@ -724,6 +759,17 @@ public abstract class AWUnbanTicket extends AWTicket {
         this.close(jda, closedByUser, closeReason, onSuccess, null);
     }
 
+    @Override
+    public void close(JDA jda, User closedByUser, String closeReason, @Nullable Consumer<JDA> onSuccess, @Nullable MessageEmbed additionalUserEmbed) throws SQLException {
+        super.close(jda, closedByUser, closeReason, onSuccess, additionalUserEmbed);
+
+        // close any related tickets
+        if (!this.relatedTickets.isEmpty()) {
+            for (AWUnbanTicket ticket : this.relatedTickets)
+                ticket.close(jda, closedByUser, closeReason, onSuccess, additionalUserEmbed);
+        }
+    }
+
     /**
      * Blacklists a user from future appeals based on the current ticket type (Discord or in-game).
      * Performs either a Discord-based blacklist update or a Roblox user blacklist update.
@@ -846,6 +892,9 @@ public abstract class AWUnbanTicket extends AWTicket {
                 return false;
             }
         }
+
+        // check for any other tickets which are appealing for the same account
+        this.afterCacheLoaded();
         return true;
     }
 }

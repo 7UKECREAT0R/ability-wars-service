@@ -265,15 +265,19 @@ public class AWPlayerReportTicket extends AWTicket {
         }
 
         long id = System.currentTimeMillis();
-        long previousEvidenceId = this.evidenceId;
+        long previousEvidenceId = this.evidenceId == null ? -1 : this.evidenceId;
         this.evidenceId = id;
         long timestamp = AWEvidence.tryExtractTimestamp(this.evidenceDetails);
 
         AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
         newEvidence.pushToDatabase();
         Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
-        event.reply("Changed the evidence successfully. Do you want to unregister the previous evidence?\n-# Note: the message at the top won't change.").mention(event.getUser()).setEphemeral(false)
-                .addActionRow(Button.of(ButtonStyle.DANGER, "delete-evidence_" + previousEvidenceId, "Unregister It")).queue();
+
+        if (previousEvidenceId == -1)
+            event.reply("Set the main evidence successfully.").mention(event.getUser()).setEphemeral(false).queue();
+        else
+            event.reply("Changed the evidence successfully. Do you want to remove the previous evidence?\n-# Note: the message at the top won't change.").mention(event.getUser()).setEphemeral(false)
+                    .addActionRow(Button.of(ButtonStyle.DANGER, AbilityWarsBot.BUTTON_ID_UNREGISTER_EVIDENCE + '_' + previousEvidenceId, "Unregister it")).queue();
     }
 
     private void setPropertyRuleBroken(@Nullable String newRuleBroken, SlashCommandInteractionEvent event) throws SQLException {
@@ -409,7 +413,7 @@ public class AWPlayerReportTicket extends AWTicket {
      */
     public String changeMainEvidenceFromMessage(Message message) throws SQLException {
         List<Message.Attachment> attachments = message.getAttachments();
-        long previousEvidenceId = this.evidenceId;
+        long previousEvidenceId = this.evidenceId == null ? -1 : this.evidenceId;
 
         if (attachments.isEmpty()) {
             String evidenceURL = extractSupportedServiceUrl(message.getContentRaw());
@@ -435,7 +439,10 @@ public class AWPlayerReportTicket extends AWTicket {
             newEvidence.pushToDatabase();
             Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
 
-            return "Changed the evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
+            if (previousEvidenceId == -1)
+                return "Changed the main evidence successfully.";
+            else
+                return "Changed the main evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
         }
 
         for (Message.Attachment attachment : attachments) {
@@ -478,7 +485,10 @@ public class AWPlayerReportTicket extends AWTicket {
             }
         });
 
-        return "Changed the evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
+        if (previousEvidenceId == -1)
+            return "Changed the main evidence successfully.";
+        else
+            return "Changed the main evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
     }
 
 
@@ -552,15 +562,13 @@ public class AWPlayerReportTicket extends AWTicket {
         for (AWTicket _ticket : openTickets) {
             if (!(_ticket instanceof AWPlayerReportTicket ticket))
                 continue;
-            if (ticket.accusedUsername.equalsIgnoreCase(this.accusedUsername)) {
-                // if one is resolved, related ones should be resolved too
-                ticket.relatedTickets.add(this);
+            if (ticket.accusedUsername.equalsIgnoreCase(this.accusedUsername))
                 this.relatedTickets.add(ticket);
-            }
         }
 
         // load player
-        this.accusedUser = RobloxAPI.getUserByCurrentUsername(this.accusedUsername);
+        if (this.accusedUser == null)
+            this.accusedUser = RobloxAPI.getUserByCurrentUsername(this.accusedUsername);
 
         // try to load evidence ID
         try {
@@ -1018,11 +1026,20 @@ public class AWPlayerReportTicket extends AWTicket {
         }
     }
 
-    public void closeRelated(JDA jda, User closedByUsed, String closeReason, Consumer<JDA> onSuccess) throws SQLException {
+    /**
+     * Helper method to call {@link #close(JDA, User, String, Consumer, MessageEmbed)} on any linked tickets.
+     *
+     * @param jda          The API to use.
+     * @param closedByUser The user closing these tickets.
+     * @param closeReason  The reason for closing this ticket.
+     * @param onSuccess    If not null, the consumer to call after the ticket is successfully closed.
+     * @throws SQLException If something goes wrong with the database.
+     */
+    public void closeRelated(JDA jda, User closedByUser, String closeReason, Consumer<JDA> onSuccess) throws SQLException {
         if (this.relatedTickets.isEmpty())
             return;
         for (AWPlayerReportTicket ticket : this.relatedTickets) {
-            ticket.close(jda, closedByUsed, closeReason, onSuccess, null);
+            ticket.close(jda, closedByUser, closeReason, onSuccess, null);
         }
     }
 

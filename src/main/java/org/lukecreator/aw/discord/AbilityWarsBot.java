@@ -60,6 +60,10 @@ public class AbilityWarsBot extends ListenerAdapter {
      * A button ID which will display an embed to the clicker explaining what an IP ban is.
      */
     public static final String BUTTON_ID_EXPLAIN_IP_BAN = "explainipbans";
+    /**
+     * A button ID which will unregister the attached evidence to it.
+     */
+    public static final String BUTTON_ID_UNREGISTER_EVIDENCE = "deleteevidence";
 
     public static final long AW_GUILD_ID = 922921165373202463L;
     public static final long AW_APPEALS_GUILD_ID = 978530758824194088L;
@@ -315,6 +319,22 @@ public class AbilityWarsBot extends ListenerAdapter {
                 MessageEmbed explainerEmbed = AWUnbanTicket.getResponseForIPBan();
                 event.replyEmbeds(explainerEmbed).setEphemeral(true).queue();
                 break;
+            }
+            case BUTTON_ID_UNREGISTER_EVIDENCE: {
+                if (StaffRoles.blockIfNotStaff(event))
+                    return;
+                String evidenceIdString = chunks[1];
+                long evidenceId = Long.parseLong(evidenceIdString);
+                try {
+                    AWEvidence.removeFromDatabase(evidenceId);
+                    event.deferEdit().queue();
+                    event.getMessage()
+                            .editMessageComponents()
+                            .setContent("Changed the evidence successfully and removed the previous evidence.\n-# Note: the message at the top won't change.")
+                            .queue();
+                } catch (SQLException e) {
+                    event.reply("An internal error occurred while trying to delete the evidence. Please try again later.\n```\n%s\n```".formatted(e.toString())).setEphemeral(true).queue();
+                }
             }
             case "ta": {
                 String actionId = chunks[1];

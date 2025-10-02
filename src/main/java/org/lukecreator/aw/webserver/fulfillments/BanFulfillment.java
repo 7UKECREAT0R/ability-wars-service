@@ -66,6 +66,9 @@ public class BanFulfillment extends Fulfillment {
                     }
                 }
             }
+        } else {
+            // no request, so this was very likely a ban issued in-game.
+
         }
 
         AWBans bans = AWBans.loadFromDatabase(this.ban.userId());
