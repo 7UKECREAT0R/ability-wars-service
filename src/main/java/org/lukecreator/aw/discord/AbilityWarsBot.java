@@ -47,6 +47,15 @@ import java.util.function.Consumer;
  * The Ability Wars Discord bot.
  */
 public class AbilityWarsBot extends ListenerAdapter {
+    /**
+     * A button ID which will cause the ticket containing the message to be canceled.
+     */
+    public static final String BUTTON_ID_CANCEL_TICKET_CONFIRM = "cancelticketnow";
+    /**
+     * A button ID which will cause the message holding the button to be deleted.
+     */
+    public static final String BUTTON_ID_DELETE_PARENT_MESSAGE = "deletethismessage";
+
     public static final long AW_GUILD_ID = 922921165373202463L;
     public static final long AW_APPEALS_GUILD_ID = 978530758824194088L;
     public static final BotCommand[] ALL_COMMANDS = new BotCommand[]{
@@ -266,10 +275,38 @@ public class AbilityWarsBot extends ListenerAdapter {
         if (id.isBlank()) return; // wtf
 
         String[] chunks = id.split("_");
-        String action = chunks[0].toUpperCase(); // the first chunk is the "action" of the modal.
+        String action = chunks[0].toLowerCase(); // the first chunk is the "action" of the modal.
 
         switch (action) {
-            case "TA": {
+            case BUTTON_ID_CANCEL_TICKET_CONFIRM: {
+                AWTicket ticket = AWTicketsManager.getTicketFromCacheByDiscordChannelId(event.getChannelIdLong());
+
+                if (ticket == null) {
+                    event.reply("This ticket's no longer valid/open. This is not intended.").setEphemeral(true).queue();
+                    return;
+                }
+
+                Member clickedMember = event.getMember();
+                if (clickedMember == null) {
+                    event.reply("This button should only appear in a server. This is not intended.").setEphemeral(true).queue();
+                    return;
+                }
+
+                try {
+                    event.deferEdit().queue();
+                    ticket.close(event.getJDA(), clickedMember.getUser(), "Canceled by user manually.", null);
+                } catch (SQLException sqlException) {
+                    event.reply("An internal error occurred while trying to open a ticket. Please try again later.\n```\n%s\n```".formatted(sqlException.toString())).setEphemeral(true).queue();
+                }
+                break;
+            }
+            case BUTTON_ID_DELETE_PARENT_MESSAGE: {
+                Message message = event.getMessage();
+                event.deferEdit().queue();
+                message.delete().queue();
+                break;
+            }
+            case "ta": {
                 String actionId = chunks[1];
                 long ticketId = Long.parseLong(chunks[2]);
 
@@ -282,7 +319,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                 ticket.handleAction(actionId, event);
                 break;
             }
-            case "TRYOPEN": {
+            case "tryopen": {
                 String ticketTypeIdentifier = chunks[1];
                 AWTicket.Type ticketType = AWTicket.Type.fromIdentifier(ticketTypeIdentifier);
                 if (ticketType == null) {
@@ -309,7 +346,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                 }
                 break;
             }
-            case "EVIDENCEAGREE": {
+            case "evidenceagree": {
                 User u = event.getUser();
                 event.getChannel().sendMessageEmbeds(new EmbedBuilder().setTitle("Video Evidence Allowed").setAuthor(u.getName(), null, u.getEffectiveAvatarUrl()).setDescription("User agreed to the staff reviewing the video evidence tied to the incident.").setColor(Color.green).build()).queue();
                 event.deferEdit().queue();
@@ -317,7 +354,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                 });
                 break;
             }
-            case "EVIDENCEDISAGREE": {
+            case "evidencedisagree": {
                 User u = event.getUser();
                 event.getChannel().sendMessageEmbeds(new EmbedBuilder().setTitle("Video Evidence Disallowed").setAuthor(u.getName(), null, u.getEffectiveAvatarUrl()).setDescription("User does not consent to the staff reviewing the video evidence tied to the incident.").addField("Additional Information", "The user %s will further explain their reason for this decision below:".formatted(u.getAsMention()), false).setColor(Color.red).build()).mention(u).queue();
                 event.deferEdit().queue();
@@ -325,7 +362,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                 });
                 break;
             }
-            case "EVIDENCEDELETE": {
+            case "evidencedelete": {
                 if (StaffRoles.blockIfNotStaff(event))
                     return;
                 long evidenceToDelete = Long.parseLong(chunks[1]);

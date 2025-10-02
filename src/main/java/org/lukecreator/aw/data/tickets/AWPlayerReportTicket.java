@@ -23,6 +23,7 @@ import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.BloxlinkAPI;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.*;
+import org.lukecreator.aw.discord.AbilityWarsBot;
 import org.lukecreator.aw.discord.ActionModals;
 import org.lukecreator.aw.discord.BotCommand;
 import org.lukecreator.aw.discord.StaffRoles;
@@ -912,11 +913,14 @@ public class AWPlayerReportTicket extends AWTicket {
         if (actionId.equals("cancel")) {
             // must be ticket opener or staff
             if (this.ownerDiscordId == clickedUserId || StaffRoles.isStaff(event.getMember())) {
-                try {
-                    this.close(event.getJDA(), clickedUser, "Cancelled manually", null);
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                EmbedBuilder eb = new EmbedBuilder()
+                        .setColor(Color.orange)
+                        .setTitle("Are you sure you want to cancel this report?")
+                        .setDescription(clickedUser.getAsMention() + ", please confirm you'd like to cancel this report. This action cannot be undone.");
+                event.replyEmbeds(eb.build()).addActionRow(
+                        Button.secondary(AbilityWarsBot.BUTTON_ID_DELETE_PARENT_MESSAGE, "No"),
+                        Button.danger(AbilityWarsBot.BUTTON_ID_CANCEL_TICKET_CONFIRM, "Yes")
+                ).setEphemeral(true).queue();
                 return;
             }
             event.reply("You must be the ticket opener or staff to cancel this ticket.").setEphemeral(true).queue();
