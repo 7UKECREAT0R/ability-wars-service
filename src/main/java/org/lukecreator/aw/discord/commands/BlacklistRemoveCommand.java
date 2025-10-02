@@ -45,7 +45,7 @@ public class BlacklistRemoveCommand extends BotCommand {
         long targetId = target.getIdLong();
 
         // check if they are even blacklisted in the first place
-        if (DiscordAppealBlacklist.isBlacklisted(targetId)) {
+        if (!DiscordAppealBlacklist.isBlacklisted(targetId)) {
             e.reply("That user isn't currently blacklisted.").setEphemeral(true).queue();
             return;
         }
