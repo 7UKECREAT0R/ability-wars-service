@@ -123,6 +123,14 @@ public class AWBanAppealTicket extends AWUnbanTicket {
         this.questionB = questionBMapping.getAsString();
         this.questionC = questionCMapping == null ? null : questionCMapping.getAsString();
 
+        if (!this.isForDiscord && this.robloxUserToUnban != null) {
+            if (isReasonBecauseOfIPBan(this.questionA) || isReasonBecauseOfIPBan(this.questionB)) {
+                String username = this.robloxUserToUnban.username();
+                event.getHook().editOriginalEmbeds(getResponseForIPBan(username)).queue();
+                return false;
+            }
+        }
+
         if (this.questionA.isBlank() || this.questionB.isBlank()) {
             event.getHook().editOriginal("You cannot leave questions 1 or 2 blank. How did you even do this?").queue();
             return false;

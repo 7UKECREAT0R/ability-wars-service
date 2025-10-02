@@ -49,7 +49,7 @@ public class AWPlayerReportTicket extends AWTicket {
             Pattern.compile("https?://(?:www\\.)?medal\\.tv/(\\w{2}/)?games/roblox/clips/[A-z0-9_-]+(\\?invite=[A-z0-9_-]+)?"), "Medal",
             Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?"), "YouTube",
             Pattern.compile("https?://(?:www\\.|m\\.)?youtube\\.com/watch\\?v=[A-z0-9_&=-]+"), "YouTube",
-            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?"), "YouTube",
+            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?"), "YouTube",
             Pattern.compile("https?://(?:www\\.)?gyazo\\.com/[a-z0-9]+(\\.\\w{3})?"), "Gyazo"
     );
     private static final Map<Pattern, String> UNSUPPORTED_SERVICES = Map.of(
@@ -346,7 +346,7 @@ public class AWPlayerReportTicket extends AWTicket {
         }
 
         for (Message.Attachment attachment : attachments) {
-            if (!AWEvidence.isValidAttachment(attachment)) {
+            if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
                     return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
@@ -438,7 +438,7 @@ public class AWPlayerReportTicket extends AWTicket {
         }
 
         for (Message.Attachment attachment : attachments) {
-            if (!AWEvidence.isValidAttachment(attachment)) {
+            if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
                     return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
@@ -506,6 +506,10 @@ public class AWPlayerReportTicket extends AWTicket {
 
     public boolean hasEvidence() {
         return this.evidenceURL != null && !this.evidenceURL.isEmpty();
+    }
+
+    public boolean hasExternalEvidence() {
+        return this.evidenceURL != null && !this.evidenceURL.isEmpty() && !this.evidenceURL.startsWith("https://discord.com/channels");
     }
 
     public boolean hasEvidenceDetails() {
@@ -623,7 +627,7 @@ public class AWPlayerReportTicket extends AWTicket {
         // check to make sure all attachments are in MP4 format
         List<Message.Attachment> attachments = message.getAttachments();
         for (Message.Attachment attachment : attachments) {
-            if (!AWEvidence.isValidAttachment(attachment)) {
+            if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
                     event.getChannel().sendMessage("We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.").queue();
@@ -940,7 +944,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 try {
                     event.deferEdit().queue();
                     this.tryRemoveEvidence(event.getJDA());
-                    this.close(event.getJDA(), clickedUser, "We couldn't punish the user using your evidence, sorry!", null);
+                    this.close(event.getJDA(), clickedUser, "We couldn't punish the user using your evidence, sorry!", null, null);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -950,7 +954,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 try {
                     event.deferEdit().queue();
                     this.tryRemoveEvidence(event.getJDA());
-                    this.close(event.getJDA(), clickedUser, "Unfortunately, what you've reported (\"" + this.ruleBroken + "\") isn't bannable. Thanks for submitting a report, though.", null);
+                    this.close(event.getJDA(), clickedUser, "Unfortunately, what you've reported (\"" + this.ruleBroken + "\") isn't bannable. Thanks for submitting a report, though.", null, null);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -1013,7 +1017,26 @@ public class AWPlayerReportTicket extends AWTicket {
         if (this.relatedTickets.isEmpty())
             return;
         for (AWPlayerReportTicket ticket : this.relatedTickets) {
-            ticket.close(jda, closedByUsed, closeReason, onSuccess);
+            ticket.close(jda, closedByUsed, closeReason, onSuccess, null);
         }
+    }
+
+    /**
+     * Generates and returns a {@link MessageEmbed} if external evidence is present in the report.
+     * The embed includes a note requesting the user to keep the evidence available for future reference.
+     *
+     * @return a {@link MessageEmbed} containing a message about preserving external evidence,
+     * or null if there is no external evidence associated with the report.
+     */
+    public @Nullable MessageEmbed returnEmbedIfExternalEvidence() {
+        if (this.hasExternalEvidence()) {
+            return new EmbedBuilder()
+                    .setColor(Color.orange)
+                    .setTitle("Note about evidence!")
+                    .setDescription("Please don't delete/private the evidence you uploaded [here](%s)! If the rule-breaker tries to appeal their ban (this happens often), we'll have to refer back to the video. If the video is gone, we have no choice but to unban the rule-breaker.".formatted(this.evidenceURL))
+                    .setFooter("Thanks for understanding!!")
+                    .build();
+        }
+        return null;
     }
 }

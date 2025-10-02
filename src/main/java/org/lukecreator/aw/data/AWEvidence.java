@@ -60,16 +60,16 @@ public class AWEvidence {
      * @param attachment The attachment to validate. It should contain the file's metadata, including its extension.
      * @return {@code true} if the attachment has a valid file extension, {@code false} otherwise.
      */
-    public static boolean isValidAttachment(Message.Attachment attachment) {
+    public static boolean isInvalidAttachment(Message.Attachment attachment) {
         String extension = attachment.getFileExtension();
         if (extension == null)
-            return false;
+            return true;
         extension = extension.toLowerCase();
         for (String allowedExtension : ALLOWED_EXTENSIONS) {
             if (allowedExtension.equals(extension))
-                return true;
+                return false;
         }
-        return false;
+        return true;
     }
 
     /**

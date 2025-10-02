@@ -104,6 +104,50 @@ public abstract class AWUnbanTicket extends AWTicket {
     }
 
     /**
+     * Returns if the reason provided is likely the Roblox template for when an account is IP banned.
+     *
+     * @param reason The reason provided by the user.
+     * @return {@code true} if the reason is overwhelmingly likely the IP banned template; {@code false} otherwise.
+     */
+    public static boolean isReasonBecauseOfIPBan(String reason) {
+        reason = reason.toUpperCase();
+        int score = 0;
+
+        // "You created or used an account to avoid an enforcement action taken against another account within this experience"
+        if (reason.contains("YOU CREATED OR USED AN ACCOUNT"))
+            score++;
+        if (reason.contains("ENFORCEMENT ACTION"))
+            score++;
+        if (reason.contains("TAKEN AGAINST ANOTHER ACCOUNT WITHIN"))
+            score++;
+        if (reason.contains("WITHIN THIS EXPERIENCE"))
+            score++;
+        return score >= 2;
+    }
+
+    public static MessageEmbed getResponseForIPBan() {
+        return new EmbedBuilder()
+                .setColor(Color.RED)
+                .setTitle("You're likely IP banned.")
+                .setDescription("If the bot shows that you're not currently banned, but you still can't join the game, it's possible that you are IP banned. We did not ban your account and **we have no way to unban it, so please do not open a ticket about it.**")
+                .addField("What to do next?", "You must get unbanned on any/all accounts that are banned from Ability Wars on the same IP as you in order for this kind of ban to be lifted.", false)
+                .addField("What constitutes as \"same IP\"?", "Same IP in this case usually means any accounts which have been played in the same house before. This is almost always alt-accounts, but sometimes could mean other family members.", false)
+                .setFooter("Thanks for understanding. This is on Roblox's side, and *none* of the staff can do anything about this kind of ban.")
+                .build();
+    }
+
+    public static MessageEmbed getResponseForIPBan(String bannedUsername) {
+        return new EmbedBuilder()
+                .setColor(Color.RED)
+                .setTitle("How to deal with an IP ban")
+                .setDescription("Your ban reason indicates that you're dealing with an *IP Ban* from *Roblox*. We did not ban your account `%s`, and **we have no way to unban it, so please do not open a ticket about it.**".formatted(bannedUsername))
+                .addField("What to do next?", "You must get unbanned on any/all accounts that are banned from Ability Wars on the same IP as you in order for this kind of ban to be lifted.", false)
+                .addField("What constitutes as \"same IP\"?", "Same IP in this case usually means any accounts which have been played in the same house before. This is almost always alt-accounts, but sometimes could mean other family members.", false)
+                .setFooter("Thanks for understanding. This is on Roblox's side, and *none* of the staff can do anything about this kind of ban.")
+                .build();
+    }
+
+    /**
      * Sends a message to the #transcripts channel in the server using the provided JDA instance and message content.
      * Ensures the message does not allow mentions.
      *
@@ -161,9 +205,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                         event.getHook().editOriginal("Successfully changed the Discord user to be unbanned to <@%d>. ID: %1$d".formatted(id))
                                 .mention(Collections.emptySet()).queue();
                     }
-                }, failure -> {
-                    event.getHook().editOriginal("The user <@%d> is not currently banned from the Discord Server, or doesn't exist.".formatted(id)).queue();
-                });
+                }, failure -> event.getHook().editOriginal("The user <@%d> is not currently banned from the Discord Server, or doesn't exist.".formatted(id)).queue());
             } catch (NumberFormatException ignored) {
                 event.reply("The Discord ID `%s` is not a valid ID.".formatted(value)).setEphemeral(true).queue();
                 return;
@@ -209,15 +251,16 @@ public abstract class AWUnbanTicket extends AWTicket {
     /**
      * Send a log in the #transcripts channel in the ward with the given action description.
      *
-     * @param jda    The API instance to use.
-     * @param action A description of what happened to the user. E.g., "blacklisted for lying in their appeal"
+     * @param jda       The API instance to use.
+     * @param performer The user performing the action associated with the log.
+     * @param action    A description of what happened to the user. E.g., "blacklisted for lying in their appeal"
      */
-    public void sendTranscriptsMessage(JDA jda, String action) {
+    public void sendTranscriptsMessage(JDA jda, User performer, String action) {
         TextChannel channel = jda.getChannelById(TextChannel.class, TRANSCRIPTS_CHANNEL_ID);
         if (channel == null)
             throw new RuntimeException("Could not find the #transcripts channel.");
 
-        String message = this.getTranscriptMessage(action);
+        String message = this.getTranscriptMessage(performer, action);
         channel.sendMessage(message).setAllowedMentions(Collections.emptySet()).queue();
     }
 
@@ -237,11 +280,13 @@ public abstract class AWUnbanTicket extends AWTicket {
      * Returns the message that should go in the #transcripts channel, given the input action.
      * Preferably one of these should be true.
      *
-     * @param action A description of what happened to the user. e.g., "blacklisted for lying in their appeal"
+     * @param performer The user performing the action associated with the log.
+     * @param action    A description of what happened to the user. e.g., "blacklisted for lying in their appeal"
      */
-    private String getTranscriptMessage(String action) {
+    private String getTranscriptMessage(User performer, String action) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Ticket #").append(this.id).append(" - ").append(this.isAppeal() ? "Appeal" : "Dispute").append('\n');
+        sb.append("Ticket #").append(this.id).append(" - ").append(this.isAppeal() ? "Appeal" : "Dispute")
+                .append(" - Closed by: ").append(performer.getAsMention()).append('\n');
         if (this.isForDiscord) {
             sb.append("<@").append(this.discordIdToUnban).append(">, ").append(action);
         } else {
@@ -394,7 +439,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                 if (this.numberOfPingWarnings >= PING_WARNING_MESSAGES.length) {
                     // close the ticket; this user has pinged staff way too many times
                     try {
-                        this.close(event.getJDA(), messageAuthor, "Pinging staff repeatedly", null);
+                        this.close(event.getJDA(), messageAuthor, "Pinging staff repeatedly", null, null);
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }
@@ -551,7 +596,7 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "closeloweffort": {
                 event.deferEdit().queue();
                 try {
-                    this.close(event.getJDA(), clickedUser, "Please try a little harder with writing your %s.".formatted(this.isAppeal() ? "appeal" : "dispute"), null);
+                    this.close(event.getJDA(), clickedUser, "Please try a little harder with writing your %s.".formatted(this.isAppeal() ? "appeal" : "dispute"), null, null);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -560,7 +605,7 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "blacklistlying": {
                 try {
                     event.deferEdit().queue();
-                    this.sendTranscriptsMessage(event.getJDA(), "Blacklisted for lying in their appeal");
+                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for lying in their appeal");
                     this.closeAndBlacklist(event.getJDA(), clickedUser,
                             this.isForDiscord ?
                                     "Your Discord account <@%d> is ineligible for appeal.".formatted(this.discordIdToUnban) :
@@ -576,7 +621,7 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "blacklistshared": {
                 try {
                     event.deferEdit().queue();
-                    this.sendTranscriptsMessage(event.getJDA(), "Blacklisted for shared account.");
+                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for shared account.");
                     this.closeAndBlacklist(event.getJDA(), clickedUser,
                             this.robloxUserToUnban == null ?
                                     "Your Roblox account [%d](https://www.roblox.com/users/%1$d/profile) is ineligible for appeal due to having shared the account with another person.".formatted(this.robloxIdToUnban) :
@@ -594,7 +639,7 @@ public abstract class AWUnbanTicket extends AWTicket {
             }
             case "unban": {
                 event.deferEdit().queue();
-                this.sendTranscriptsMessage(event.getJDA(), "Unbanned");
+                this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Unbanned");
 
                 String reason = this.isForDiscord ?
                         "Unbanned, rejoin using `discord.gg/abilitywars`. Please remember to re-read the rules! :)" :
@@ -608,7 +653,7 @@ public abstract class AWUnbanTicket extends AWTicket {
             }
             case "unbanunsure": {
                 event.deferEdit().queue();
-                this.sendTranscriptsMessage(event.getJDA(), "Unbanned due to poor/missing evidence");
+                this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Unbanned due to poor/missing evidence");
                 String reason = this.isForDiscord ?
                         "Unbanned because the evidence we do have isn't conclusive enough. Rejoin using `discord.gg/abilitywars`, and thanks for opening your " + (this.isAppeal() ? "appeal" : "dispute") + "!" :
                         "Unbanned because the evidence we have is lost/inconclusive. If you did exploit, please don't do it again :)";
@@ -633,7 +678,7 @@ public abstract class AWUnbanTicket extends AWTicket {
     }
 
     /**
-     * Calls {@link #close(JDA, User, String, Consumer)} but also unbans the user (depending on the ticket type) at the same time.
+     * Calls {@link #close(JDA, User, String, Consumer, MessageEmbed)} but also unbans the user (depending on the ticket type) at the same time.
      *
      * @param jda          The API instance to use for Discord operations.
      * @param closedByUser The user that closed the ticket.
@@ -661,11 +706,11 @@ public abstract class AWUnbanTicket extends AWTicket {
             }
         }
 
-        this.close(jda, closedByUser, closeReason, onSuccess);
+        this.close(jda, closedByUser, closeReason, onSuccess, null);
     }
 
     /**
-     * Calls {@link #close(JDA, User, String, Consumer)} but also blacklists the user from appealing using that account (discord/roblox) in the future.
+     * Calls {@link #close(JDA, User, String, Consumer, MessageEmbed)} but also blacklists the user from appealing using that account (discord/roblox) in the future.
      *
      * @param jda             The API instance to use for Discord operations.
      * @param closedByUser    The user that closed the ticket.
@@ -676,7 +721,7 @@ public abstract class AWUnbanTicket extends AWTicket {
      */
     public void closeAndBlacklist(JDA jda, User closedByUser, String closeReason, String blacklistReason, Consumer<JDA> onSuccess) throws SQLException {
         this.blacklist(closedByUser, blacklistReason);
-        this.close(jda, closedByUser, closeReason, onSuccess);
+        this.close(jda, closedByUser, closeReason, onSuccess, null);
     }
 
     /**
@@ -792,6 +837,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                         "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
                 return false;
             }
+
             // check for blacklist
             AWPlayer player = AWPlayer.loadFromDatabase(this.robloxIdToUnban,
                     true, true, true, false);

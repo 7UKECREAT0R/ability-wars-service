@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.AWDatabase;
 
@@ -23,6 +24,38 @@ public class AWTicketsManager {
     public static final HashMap<String, AWTicket> AWAITING_MODAL_RESPONSE = new HashMap<>();
     private static final HashMap<Long, AWTicket> OPEN_TICKETS_BY_ID = new HashMap<>();
     private static final HashMap<Long, AWTicket> OPEN_TICKETS_BY_DISCORD_CHANNEL_ID = new HashMap<>();
+    private static final CircularFifoQueue<AWTicket> RECENTLY_CLOSED_TICKETS = new CircularFifoQueue<>(25);
+
+    /**
+     * Adds a recently closed ticket to the internal cache.
+     * If the cache reaches its maximum capacity,
+     * the oldest ticket will automatically be removed to make space for the new one.
+     *
+     * @param ticket The ticket to be added to the recently closed tickets cache.
+     */
+    public static void addRecentlyClosedTicket(AWTicket ticket) {
+        RECENTLY_CLOSED_TICKETS.add(ticket);
+    }
+
+    /**
+     * Retrieves an array of recently closed tickets, up to a specified maximum count.
+     * If the specified count exceeds the number of available recently closed tickets,
+     * only the available tickets will be returned.
+     *
+     * @param count The maximum number of recently closed tickets to retrieve.
+     * @return An array of recently closed tickets, up to the specified count, but not always.
+     * Check the length of the returned array before using it!
+     */
+    public static AWTicket[] getRecentlyClosedTickets(int count) {
+        int historySize = RECENTLY_CLOSED_TICKETS.size();
+        if (historySize < count)
+            count = historySize;
+
+        AWTicket[] result = new AWTicket[count];
+        for (int i = 0; i < count; i++)
+            result[i] = RECENTLY_CLOSED_TICKETS.get((historySize - 1) - i);
+        return result;
+    }
 
     /**
      * Retrieves a collection of all open tickets currently stored in the cache.
@@ -204,13 +237,19 @@ public class AWTicketsManager {
     }
 
     /**
-     * Removes the ticket associated with the given Ticket ID from the cache.
+     * Removes the ticket associated with the given Ticket ID from the cache
+     * and adds it to the recently closed tickets cache.
      *
      * @param ticketID The ID of the ticket to be removed from the cache.
      */
     public static void removeTicketFromCache(long ticketID) {
-        OPEN_TICKETS_BY_ID.remove(ticketID);
-        OPEN_TICKETS_BY_DISCORD_CHANNEL_ID.remove(ticketID);
+        AWTicket ticket0 = OPEN_TICKETS_BY_ID.remove(ticketID);
+        AWTicket ticket1 = OPEN_TICKETS_BY_DISCORD_CHANNEL_ID.remove(ticketID);
+
+        AWTicket ticket = ticket0 == null ? ticket1 : ticket0;
+
+        if (ticket != null)
+            addRecentlyClosedTicket(ticket);
     }
 
 }

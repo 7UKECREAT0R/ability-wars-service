@@ -33,6 +33,7 @@ import org.lukecreator.aw.data.AWEvidence;
 import org.lukecreator.aw.data.AWTicket;
 import org.lukecreator.aw.data.AWTicketsManager;
 import org.lukecreator.aw.data.tickets.AWPlayerReportTicket;
+import org.lukecreator.aw.data.tickets.AWUnbanTicket;
 import org.lukecreator.aw.discord.commands.*;
 
 import java.awt.*;
@@ -55,6 +56,10 @@ public class AbilityWarsBot extends ListenerAdapter {
      * A button ID which will cause the message holding the button to be deleted.
      */
     public static final String BUTTON_ID_DELETE_PARENT_MESSAGE = "deletethismessage";
+    /**
+     * A button ID which will display an embed to the clicker explaining what an IP ban is.
+     */
+    public static final String BUTTON_ID_EXPLAIN_IP_BAN = "explainipbans";
 
     public static final long AW_GUILD_ID = 922921165373202463L;
     public static final long AW_APPEALS_GUILD_ID = 978530758824194088L;
@@ -136,7 +141,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                     boolean hasUser = user != null;
                     JDA jda = hasUser ? user.getJDA() : event.getJDA();
                     try {
-                        ticketTest.close(jda, hasUser ? user : jda.getSelfUser(), "No reason specified. (channel was deleted)", null);
+                        ticketTest.close(jda, hasUser ? user : jda.getSelfUser(), "No reason specified. (channel was deleted)", null, null);
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }
@@ -294,7 +299,7 @@ public class AbilityWarsBot extends ListenerAdapter {
 
                 try {
                     event.deferEdit().queue();
-                    ticket.close(event.getJDA(), clickedMember.getUser(), "Canceled by user manually.", null);
+                    ticket.close(event.getJDA(), clickedMember.getUser(), "Cancelled manually", null, null);
                 } catch (SQLException sqlException) {
                     event.reply("An internal error occurred while trying to open a ticket. Please try again later.\n```\n%s\n```".formatted(sqlException.toString())).setEphemeral(true).queue();
                 }
@@ -304,6 +309,11 @@ public class AbilityWarsBot extends ListenerAdapter {
                 Message message = event.getMessage();
                 event.deferEdit().queue();
                 message.delete().queue();
+                break;
+            }
+            case BUTTON_ID_EXPLAIN_IP_BAN: {
+                MessageEmbed explainerEmbed = AWUnbanTicket.getResponseForIPBan();
+                event.replyEmbeds(explainerEmbed).setEphemeral(true).queue();
                 break;
             }
             case "ta": {

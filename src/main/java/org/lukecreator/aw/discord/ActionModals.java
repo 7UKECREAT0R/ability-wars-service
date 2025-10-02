@@ -146,7 +146,13 @@ public class ActionModals {
 
         // close the ticket
         User closedBy = event.getUser();
-        ticket.close(event.getJDA(), closedBy, reason, null);
+        ticket.close(event.getJDA(), closedBy, reason, null, null);
+
+        if (ticket.type().isAppealsServer() && ticket instanceof AWUnbanTicket unbanTicket) {
+            // create transcript
+            String actionDescription = "Closed without action for reason: `%s`".formatted(reason);
+            unbanTicket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
+        }
     }
 
     /**
@@ -196,7 +202,13 @@ public class ActionModals {
 
         // close the ticket
         User closedBy = event.getUser();
-        ticket.close(event.getJDA(), closedBy, templateString, null);
+        ticket.close(event.getJDA(), closedBy, templateString, null, null);
+
+        if (ticket.type().isAppealsServer() && ticket instanceof AWUnbanTicket unbanTicket) {
+            // create transcript
+            String actionDescription = "Closed without action for reason: `%s`".formatted(templateString);
+            unbanTicket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
+        }
     }
 
     public static Modal closeTicketAndBanWithPresetReason(AWPlayerReportTicket ticket, String presetReason) {
@@ -252,7 +264,7 @@ public class ActionModals {
         PendingRequests.add(banRequest);
 
         // close the ticket
-        ticket.close(event.getJDA(), closedBy, presetReason, null);
+        ticket.close(event.getJDA(), closedBy, presetReason, null, ticket.returnEmbedIfExternalEvidence());
         ticket.closeRelated(event.getJDA(), closedBy, presetReason, null);
 
         // file a physical report in the #in-game-punishments
@@ -316,7 +328,7 @@ public class ActionModals {
         PendingRequests.add(banRequest);
 
         // close the ticket
-        ticket.close(event.getJDA(), closedBy, reason, null);
+        ticket.close(event.getJDA(), closedBy, reason, null, ticket.returnEmbedIfExternalEvidence());
         ticket.closeRelated(event.getJDA(), closedBy, reason, null);
 
         // file a physical report in the #in-game-punishments
@@ -392,9 +404,8 @@ public class ActionModals {
             PendingRequests.add(banRequest);
 
             // close the ticket
-            ticket.close(event.getJDA(), closedBy, presetReason, null);
+            ticket.close(event.getJDA(), closedBy, presetReason, null, ticket.returnEmbedIfExternalEvidence());
             ticket.closeRelated(event.getJDA(), closedBy, presetReason, null);
-
 
             // file a physical report in the #in-game-punishments
             if (ticket.hasEvidence()) {
@@ -474,7 +485,7 @@ public class ActionModals {
             PendingRequests.add(banRequest);
 
             // close the ticket
-            ticket.close(event.getJDA(), closedBy, reason, null);
+            ticket.close(event.getJDA(), closedBy, reason, null, ticket.returnEmbedIfExternalEvidence());
             ticket.closeRelated(event.getJDA(), closedBy, reason, null);
 
             // file a physical report in the #in-game-punishments
@@ -552,7 +563,11 @@ public class ActionModals {
             PendingRequests.add(request);
 
             // close the ticket with no further action
-            ticket.close(event.getJDA(), closedBy, reason, null);
+            ticket.close(event.getJDA(), closedBy, reason, null, null);
+
+            // create transcript
+            String actionDescription = "Ban duration changed to %d day(s)".formatted(durationLong);
+            ticket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
         } catch (NumberFormatException ignored) {
             event.reply("Duration must be a valid positive number, or -1 for a permanent ban. (got \"%s\")".formatted(duration)).setEphemeral(true).queue();
             return;
@@ -588,7 +603,7 @@ public class ActionModals {
 
         // file a physical report in the #transcripts channel
         String actionDescription = "Unbanned for `%s`".formatted(reason.replace("`", ""));
-        ticket.sendTranscriptsMessage(event.getJDA(), actionDescription);
+        ticket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
     }
 
     public static Modal closeTicketAndBlacklistWithCustomReason(AWUnbanTicket ticket) {
@@ -638,6 +653,6 @@ public class ActionModals {
 
         // file a physical report in the #transcripts channel
         String actionDescription = "Blacklisted for `%s`".formatted(blacklistReason.replace("`", ""));
-        ticket.sendTranscriptsMessage(event.getJDA(), actionDescription);
+        ticket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
     }
 }

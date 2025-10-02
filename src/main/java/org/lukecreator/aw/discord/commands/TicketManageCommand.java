@@ -62,6 +62,18 @@ public class TicketManageCommand extends BotCommand {
                                         new OptionData(OptionType.STRING, "type-filter", "The type of ticket to filter by, if specified.", false)
                                                 .addChoices(AWTicket.Type.AS_COMMAND_CHOICES)
                                 ),
+                        new SubcommandData("history-by-closer", "Get ticket history based on the ticket closer.")
+                                .addOptions(
+                                        new OptionData(OptionType.USER, "closer", "The user to look up tickets they've closed.", true),
+                                        new OptionData(OptionType.STRING, "type-filter", "The type of ticket to filter by, if specified.", false)
+                                                .addChoices(AWTicket.Type.AS_COMMAND_CHOICES)
+                                ),
+                        new SubcommandData("history-by-recent", "Get recently closed tickets.")
+                                .addOptions(
+                                        new OptionData(OptionType.INTEGER, "limit", "The maximum number of tickets to retrieve.", true)
+                                                .setMinValue(1)
+                                                .setMaxValue(25)
+                                ),
                         new SubcommandData("recall", "Recall a past ticket by its ID.")
                                 .addOption(OptionType.INTEGER, "ticket-id", "The ID of the ticket to recall.", true)
                 );
@@ -111,17 +123,15 @@ public class TicketManageCommand extends BotCommand {
             }
         }
 
+        e.deferReply(true).queue();
+
         try {
-            AWTicket[] ticketHistory = AWTicket.loadByOwner(user);
-            int totalTickets;
-            if (typeFilter != null) {
-                totalTickets = 0;
-                for (AWTicket ticket : ticketHistory)
-                    if (ticket.type() == typeFilter)
-                        totalTickets++;
-            } else {
-                totalTickets = ticketHistory.length;
-            }
+            AWTicket[] ticketHistory = typeFilter != null
+                    ? AWTicket.loadByOwner(user, MessageEmbed.MAX_FIELD_AMOUNT, typeFilter)
+                    : AWTicket.loadByOwner(user, MessageEmbed.MAX_FIELD_AMOUNT);
+            int totalTickets = typeFilter != null
+                    ? AWTicket.countByOwner(user, typeFilter)
+                    : AWTicket.countByCloser(user);
 
             EmbedBuilder eb = new EmbedBuilder()
                     .setAuthor(user.getName(), null, user.getEffectiveAvatarUrl())
@@ -152,10 +162,109 @@ public class TicketManageCommand extends BotCommand {
                     break;
                 }
             }
-            e.replyEmbeds(eb.build()).setEphemeral(true).queue();
+            e.getHook().editOriginalEmbeds(eb.build()).queue();
         } catch (SQLException ex) {
-            e.reply("A database error occurred while retrieving the ticket history:\n```\n" + ex + "\n```").setEphemeral(true).queue();
+            e.getHook().editOriginal("A database error occurred while retrieving the ticket history:\n```\n" + ex + "\n```").queue();
         }
+    }
+
+    private void executeHistoryByCloser(SlashCommandInteractionEvent e) {
+        OptionMapping closerMapping = e.getOption("closer");
+        OptionMapping typeFilterMapping = e.getOption("type-filter");
+        if (closerMapping == null) {
+            e.reply("You must specify the Discord closer to get ticket history for.").setEphemeral(true).queue();
+            return;
+        }
+
+        User closer = closerMapping.getAsUser();
+        AWTicket.Type typeFilter = null;
+        if (typeFilterMapping != null) {
+            String typeFilterString = typeFilterMapping.getAsString();
+            if (!typeFilterString.isBlank()) {
+                typeFilter = AWTicket.Type.fromIdentifier(typeFilterString);
+                if (typeFilter == null) {
+                    e.reply("Couldn't find a ticket type with the identifier `%s`.".formatted(typeFilterString)).setEphemeral(true).queue();
+                    return;
+                }
+            }
+        }
+
+        e.deferReply(true).queue();
+
+        try {
+            AWTicket[] ticketHistory = typeFilter != null
+                    ? AWTicket.loadByCloser(closer, MessageEmbed.MAX_FIELD_AMOUNT, typeFilter)
+                    : AWTicket.loadByCloser(closer, MessageEmbed.MAX_FIELD_AMOUNT);
+            int totalTickets = typeFilter != null
+                    ? AWTicket.countByCloser(closer, typeFilter)
+                    : AWTicket.countByCloser(closer);
+
+            EmbedBuilder eb = new EmbedBuilder()
+                    .setAuthor(closer.getName(), null, closer.getEffectiveAvatarUrl())
+                    .setTitle("Ticket History")
+                    .setColor(Color.DARK_GRAY)
+                    .setDescription("Found %d tickets closed by %s.".formatted(totalTickets, closer.getAsMention()));
+            if (typeFilter != null)
+                eb.appendDescription("\n- Showing only tickets of type **%s**".formatted(typeFilter.title));
+
+            int currentTicketsInEmbed = 0;
+            for (AWTicket ticket : ticketHistory) {
+                if (typeFilter != null && ticket.type() != typeFilter)
+                    continue;
+                StringBuilder ticketDescription = new StringBuilder();
+                ticketDescription.append("- Opened on <t:").append(ticket.openedTimestamp / 1000L).append(":f>\n");
+                if (ticket.closeReason != null && !ticket.closeReason.isBlank()) {
+                    ticketDescription.append("- Closed for reason:\n-# ").append(ticket.closeReason.replace("\n", "\n-# "));
+                }
+                eb.addField(ticket.type().channelPrefix + ticket.id, ticketDescription.toString(), false);
+                currentTicketsInEmbed++;
+                if (currentTicketsInEmbed >= MessageEmbed.MAX_FIELD_AMOUNT) {
+                    eb.setFooter("Truncated to the 25 latest entries due to Discord limitation.");
+                    break;
+                }
+            }
+            e.getHook().editOriginalEmbeds(eb.build()).queue();
+        } catch (SQLException ex) {
+            e.getHook().editOriginal("A database error occurred while retrieving the ticket history:\n```\n" + ex + "\n```").queue();
+        }
+    }
+
+    public void executeHistoryByRecent(SlashCommandInteractionEvent e) {
+        OptionMapping limitMapping = e.getOption("limit");
+        if (limitMapping == null) {
+            e.reply("You must specify the maximum number of tickets to retrieve.").setEphemeral(true).queue();
+            return;
+        }
+
+        int limit = limitMapping.getAsInt();
+        if (limit < 1 || limit > 25) {
+            e.reply("The maximum number of tickets to retrieve must be between 1 and 25.").setEphemeral(true).queue();
+            return;
+        }
+
+        AWTicket[] recentlyClosedTickets = AWTicketsManager.getRecentlyClosedTickets(limit);
+        int numberOfTickets = recentlyClosedTickets.length;
+        if (numberOfTickets == 0) {
+            e.reply("No tickets have been closed since the bot started.").setEphemeral(true).queue();
+            return;
+        }
+
+        EmbedBuilder eb = new EmbedBuilder()
+                .setTitle("Recent Ticket History")
+                .setColor(Color.DARK_GRAY)
+                .setDescription("Got %d recently closed tickets.".formatted(numberOfTickets));
+
+        for (AWTicket ticket : recentlyClosedTickets) {
+            StringBuilder ticketDescription = new StringBuilder();
+            ticketDescription.append("- Opened on <t:").append(ticket.openedTimestamp / 1000L).append(":f>\n");
+            ticketDescription.append("- Closed by <@").append(ticket.closedByDiscordId).append('>');
+            if (ticket.closeReason != null && !ticket.closeReason.isBlank()) {
+                ticketDescription.append(" For reason:\n-# ").append(ticket.closeReason.replace("\n", "\n-# "));
+            }
+            eb.addField(ticket.type().channelPrefix + ticket.id, ticketDescription.toString(), false);
+        }
+
+        e.replyEmbeds(eb.build()).setEphemeral(true).queue();
     }
 
     private void executeRecall(SlashCommandInteractionEvent e) {
@@ -200,7 +309,7 @@ public class TicketManageCommand extends BotCommand {
         e.reply("Closing...").queue();
 
         try {
-            ticket.close(e.getJDA(), closer, reason, null);
+            ticket.close(e.getJDA(), closer, reason, null, null);
         } catch (SQLException sqlException) {
             sqlException.printStackTrace();
         }
@@ -359,6 +468,14 @@ public class TicketManageCommand extends BotCommand {
         }
         if (subcommandName.equals("history")) {
             this.executeHistory(e);
+            return;
+        }
+        if (subcommandName.equals("history-by-closer")) {
+            this.executeHistoryByCloser(e);
+            return;
+        }
+        if (subcommandName.equals("history-by-recent")) {
+            this.executeHistoryByRecent(e);
             return;
         }
         if (subcommandName.equals("recall")) {

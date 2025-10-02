@@ -24,6 +24,7 @@ import org.lukecreator.aw.data.tickets.*;
 import org.lukecreator.aw.discord.AbilityWarsBot;
 
 import java.awt.*;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
@@ -253,25 +254,174 @@ public abstract class AWTicket {
     }
 
     /**
+     * Retrieves an array of AWTicket objects by executing the provided PreparedStatement.
+     *
+     * @param statement the PreparedStatement used to query the database for ticket information
+     * @return an array of AWTicket objects retrieved and sorted by their opened timestamp in descending order
+     * @throws SQLException if a database access error occurs or the statement execution fails
+     */
+    @NotNull
+    private static AWTicket[] getAWTicketsByStatement(PreparedStatement statement) throws SQLException {
+        try (var results = statement.executeQuery()) {
+            List<AWTicket> tickets = new ArrayList<>();
+            while (results.next()) {
+                long ticketId = results.getLong(1);
+                AWTicket ticket = loadFromDatabase(ticketId);
+                tickets.add(ticket);
+            }
+            tickets.sort((a, b) -> Long.compare(b.openedTimestamp, a.openedTimestamp));
+            return tickets.toArray(new AWTicket[0]);
+        }
+    }
+
+    /**
      * Loads all tickets associated with the specified owner from the database.
      *
      * @param owner The UserSnowflake object representing the owner whose tickets are to be loaded.
+     * @param limit The maximum number of tickets to load. Keep this low because it fully loads every ticket.
      * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
      * @throws SQLException If a database access error occurs.
      */
-    public static AWTicket[] loadByOwner(UserSnowflake owner) throws SQLException {
+    public static AWTicket[] loadByOwner(UserSnowflake owner, int limit) throws SQLException {
         long ownerId = owner.getIdLong();
-        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ?")) {
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? LIMIT ?")) {
+            statement.setLong(1, ownerId);
+            statement.setInt(2, limit);
+            return getAWTicketsByStatement(statement);
+        }
+    }
+
+    /**
+     * Loads all tickets associated with the specified owner from the database.
+     *
+     * @param owner The UserSnowflake object representing the owner whose tickets are to be loaded.
+     * @param limit The maximum number of tickets to load. Keep this low because it fully loads every ticket.
+     * @param type  The type of ticket to restrict the lookup to.
+     * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
+     * @throws SQLException If a database access error occurs.
+     */
+    public static AWTicket[] loadByOwner(UserSnowflake owner, int limit, AWTicket.Type type) throws SQLException {
+        long ownerId = owner.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? AND type = ? LIMIT ?")) {
+            statement.setLong(1, ownerId);
+            statement.setInt(2, type.id);
+            statement.setInt(3, limit);
+            return getAWTicketsByStatement(statement);
+        }
+    }
+
+    /**
+     * Loads all tickets closed by the specified user from the database.
+     *
+     * @param closer The UserSnowflake object representing the ticket closer to use for the lookup.
+     * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
+     * @throws SQLException If a database access error occurs.
+     */
+    public static AWTicket[] loadByCloser(UserSnowflake closer, int limit) throws SQLException {
+        long closerId = closer.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? LIMIT ?")) {
+            statement.setLong(1, closerId);
+            statement.setInt(2, limit);
+            return getAWTicketsByStatement(statement);
+        }
+    }
+
+    /**
+     * Loads all tickets closed by the specified user from the database.
+     *
+     * @param closer The UserSnowflake object representing the ticket closer to use for the lookup.
+     * @param type   The type of ticket to restrict the lookup to.
+     * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
+     * @throws SQLException If a database access error occurs.
+     */
+    public static AWTicket[] loadByCloser(UserSnowflake closer, int limit, AWTicket.Type type) throws SQLException {
+        long closerId = closer.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? AND type = ? LIMIT ?")) {
+            statement.setLong(1, closerId);
+            statement.setInt(2, type.id);
+            statement.setInt(3, limit);
+            return getAWTicketsByStatement(statement);
+        }
+    }
+
+    /**
+     * Counts the number of tickets associated with the specified owner from the database.
+     *
+     * @param owner The UserSnowflake object representing the owner whose tickets are to be counted.
+     * @return The number of tickets associated with the specified owner.
+     */
+    public static int countByOwner(UserSnowflake owner) throws SQLException {
+        long ownerId = owner.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE owner_discord_id = ?")) {
             statement.setLong(1, ownerId);
             try (var results = statement.executeQuery()) {
-                List<AWTicket> tickets = new ArrayList<>();
-                while (results.next()) {
-                    long ticketId = results.getLong(1);
-                    AWTicket ticket = loadFromDatabase(ticketId);
-                    tickets.add(ticket);
+                if (!results.next()) {
+                    return 0;
                 }
-                tickets.sort((a, b) -> Long.compare(b.openedTimestamp, a.openedTimestamp));
-                return tickets.toArray(new AWTicket[0]);
+                return results.getInt(1);
+            }
+        }
+    }
+
+    /**
+     * Counts the number of tickets associated with the specified owner from the database.
+     *
+     * @param owner The UserSnowflake object representing the owner whose tickets are to be counted.
+     * @param type  The type of ticket to restrict the count to.
+     * @return The number of tickets associated with the specified owner.
+     */
+    public static int countByOwner(UserSnowflake owner, AWTicket.Type type) throws SQLException {
+        long ownerId = owner.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE owner_discord_id = ? AND type = ?")) {
+            statement.setLong(1, ownerId);
+            statement.setInt(2, type.id);
+            try (var results = statement.executeQuery()) {
+                if (!results.next()) {
+                    return 0;
+                }
+                return results.getInt(1);
+            }
+        }
+    }
+
+    /**
+     * Counts the number of tickets that are closed by a specific user.
+     *
+     * @param closer The UserSnowflake object representing the user who closed the tickets.
+     * @return The total count of tickets closed by the specified user.
+     * @throws SQLException If a database access error occurs during the query.
+     */
+    public static int countByCloser(UserSnowflake closer) throws SQLException {
+        long closerId = closer.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE is_open = false AND closed_by = ?")) {
+            statement.setLong(1, closerId);
+            try (var results = statement.executeQuery()) {
+                if (!results.next()) {
+                    return 0;
+                }
+                return results.getInt(1);
+            }
+        }
+    }
+
+    /**
+     * Counts the number of tickets that are closed by a specific user.
+     *
+     * @param closer The UserSnowflake object representing the user who closed the tickets.
+     * @param type   The type of ticket to restrict the count to.
+     * @return The total count of tickets closed by the specified user.
+     * @throws SQLException If a database access error occurs during the query.
+     */
+    public static int countByCloser(UserSnowflake closer, AWTicket.Type type) throws SQLException {
+        long closerId = closer.getIdLong();
+        try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE is_open = false AND closed_by = ? AND type = ?")) {
+            statement.setLong(1, closerId);
+            statement.setInt(2, type.id);
+            try (var results = statement.executeQuery()) {
+                if (!results.next()) {
+                    return 0;
+                }
+                return results.getInt(1);
             }
         }
     }
@@ -541,13 +691,14 @@ public abstract class AWTicket {
     /**
      * Close this ticket. It will be actually closed at some point in the future, as this sends multiple Discord API requests.
      *
-     * @param jda          The API instance to use for Discord operations.
-     * @param closedByUser The user that closed the ticket.
-     * @param closeReason  The user-friendly description of why the ticket was closed.
-     * @param onSuccess    If not null, the consumer to run when the ticket is fully, successfully closed.
+     * @param jda                 The API instance to use for Discord operations.
+     * @param closedByUser        The user that closed the ticket.
+     * @param closeReason         The user-friendly description of why the ticket was closed.
+     * @param onSuccess           If not null, the consumer to run when the ticket is fully, successfully closed.
+     * @param additionalUserEmbed If not null, an additional embed to append to the end of the message to the ticket owner.
      * @throws SQLException If something went wrong in the database.
      */
-    public void close(JDA jda, User closedByUser, String closeReason, @Nullable Consumer<JDA> onSuccess) throws SQLException {
+    public void close(JDA jda, User closedByUser, String closeReason, @Nullable Consumer<JDA> onSuccess, @Nullable MessageEmbed additionalUserEmbed) throws SQLException {
         if (!this.isOpen) {
             // check and make sure the channel's gone
             Guild guild = jda.getGuildById(this.type().guildId);
@@ -596,14 +747,19 @@ public abstract class AWTicket {
                     .addField("Closed By", "%s (%s)".formatted(closedByUser.getAsMention(), closedByUser.getName()), true)
                     .addField("Server", guild == null ? "Unknown" : guild.getName(), true)
                     .build();
-            whenDone.sendMessageEmbeds(embed).queue(null, f -> {
-                // user may have DMs off, just silently fail
-            });
+            if (additionalUserEmbed != null) {
+                whenDone.sendMessageEmbeds(embed, additionalUserEmbed).queue(null, f -> {
+                });
+            } else {
+                whenDone.sendMessageEmbeds(embed).queue(null, f -> {
+                });
+            }
+            return;
         });
     }
 
     /**
-     * Like {@link #close(JDA, User, String, Consumer)}, but doesn't alert the user and doesn't complain if, for example,
+     * Like {@link #close(JDA, User, String, Consumer, MessageEmbed)}, but doesn't alert the user and doesn't complain if, for example,
      * the channel is missing. This is meant as a way of removing the ticket from the cache/db if it's broken.
      *
      * @param jda The API to use.

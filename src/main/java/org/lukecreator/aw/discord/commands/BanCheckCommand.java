@@ -1,11 +1,14 @@
 package org.lukecreator.aw.discord.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
 import org.jetbrains.annotations.NotNull;
 import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.RobloxAPI;
@@ -13,6 +16,7 @@ import org.lukecreator.aw.data.AWBan;
 import org.lukecreator.aw.data.AWEvidence;
 import org.lukecreator.aw.data.AWPlayer;
 import org.lukecreator.aw.data.Links;
+import org.lukecreator.aw.discord.AbilityWarsBot;
 import org.lukecreator.aw.discord.BotCommand;
 import org.lukecreator.aw.discord.StaffRoles;
 import org.lukecreator.aw.webserver.PendingRequest;
@@ -164,7 +168,7 @@ public class BanCheckCommand extends BotCommand {
             else {
 
                 AWBan[] bans = awPlayer.bans.getBans();
-                eb.appendDescription("Not currently banned; bans on record:\n");
+                eb.appendDescription("Not currently banned; past bans:\n");
                 generateBanRecordDescription(eb, bans, true, false);
             }
         }
@@ -207,10 +211,14 @@ public class BanCheckCommand extends BotCommand {
 
         // make a request for user information
         PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), robloxId)
-                .onFulfilled((f -> {
+                .onFulfilled(f -> {
                     AWPlayer player = AWDatabase.loadPlayer(robloxId, false, true, true, false);
-                    e.getInteraction().getHook().editOriginalEmbeds(this.buildFromPlayer(player, user, getEvidence)).queue();
-                }));
+                    MessageEmbed embed = this.buildFromPlayer(player, user, getEvidence);
+                    WebhookMessageEditAction<Message> edit = e.getInteraction().getHook().editOriginalEmbeds(embed);
+                    if (!getEvidence && !player.bans.isCurrentlyBanned())
+                        edit.setActionRow(Button.secondary(AbilityWarsBot.BUTTON_ID_EXPLAIN_IP_BAN, "I still can't join"));
+                    edit.queue();
+                });
         PendingRequests.add(request);
     }
 }
