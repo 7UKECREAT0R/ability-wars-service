@@ -1,13 +1,14 @@
 package org.lukecreator.aw.discord.commands;
 
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
 import org.lukecreator.aw.discord.BotCommand;
@@ -128,29 +129,18 @@ public class MassbanCommand extends BotCommand {
         }
 
         Modal modal = Modal.create("massban_" + linkedRobloxId, "Massban GUI")
-                .addActionRow(
-                        TextInput.create("bans", "Ban List", TextInputStyle.PARAGRAPH)
+                .addComponents(
+                        Label.of("Ban List", TextInput.create("bans", TextInputStyle.PARAGRAPH)
                                 .setRequired(true)
                                 .setPlaceholder("username 1\nreason 1\nusername 2\nreason 2\netc...")
                                 .build()
-                )
-                .build();
+                        )
+                ).build();
 
         e.replyModal(modal).queue();
     }
 
-    private static class ResolvedMassbanEntry {
-        public final long id;
-        public final String username;
-        public final String reason;
-        public final long responsibleModerator;
-
-        private ResolvedMassbanEntry(long id, String username, String reason, long responsibleModerator) {
-            this.id = id;
-            this.username = username;
-            this.reason = reason;
-            this.responsibleModerator = responsibleModerator;
-        }
+    private record ResolvedMassbanEntry(long id, String username, String reason, long responsibleModerator) {
 
         /**
          * Resolve a username into a {@link ResolvedMassbanEntry} and return it.

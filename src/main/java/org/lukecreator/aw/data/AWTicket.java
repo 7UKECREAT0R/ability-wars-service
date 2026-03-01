@@ -5,6 +5,10 @@ import com.google.gson.JsonParser;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.components.Component;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
@@ -14,9 +18,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
-import net.dv8tion.jda.api.interactions.components.Component;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.AWDatabase;
@@ -631,7 +633,7 @@ public abstract class AWTicket {
 
                     var action = whenDone.sendMessageEmbeds(embeds);
 
-                    final int maxPerRow = Component.Type.BUTTON.getMaxPerRow();
+                    final int maxPerRow = ActionRow.getMaxAllowed(Component.Type.BUTTON);
                     final int maxRows = Message.MAX_COMPONENT_COUNT;
                     final int maxComponents = maxRows * maxPerRow;
                     if (buttons.length > maxComponents) {
@@ -658,14 +660,13 @@ public abstract class AWTicket {
                                 onThisRow++;
                                 extraButtons--;
                             }
-                            Button[] row = new Button[onThisRow];
-                            for (int j = 0; j < onThisRow; j++)
-                                row[j] = buttons[b++];
-                            action.addActionRow(row);
+                            List<ActionRowChildComponent> row = new ArrayList<>(onThisRow);
+                            row.add(buttons[b++]);
+                            action.addComponents(ActionRow.of(row));
                         }
                     } else {
                         // will fit on one action row
-                        action.setActionRow(buttons);
+                        action.addComponents(ActionRow.of(Arrays.asList(buttons)));
                     }
 
                     // send the message

@@ -3,6 +3,12 @@ package org.lukecreator.aw.data.tickets;
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -10,12 +16,8 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -274,10 +276,15 @@ public class AWPlayerReportTicket extends AWTicket {
         Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
 
         if (previousEvidenceId == -1)
-            event.reply("Set the main evidence successfully.").mention(event.getUser()).setEphemeral(false).queue();
-        else
-            event.reply("Changed the evidence successfully. Do you want to remove the previous evidence?\n-# Note: the message at the top won't change.").mention(event.getUser()).setEphemeral(false)
-                    .addActionRow(Button.of(ButtonStyle.DANGER, AbilityWarsBot.BUTTON_ID_UNREGISTER_EVIDENCE + '_' + previousEvidenceId, "Unregister it")).queue();
+            event.reply("Set the main evidence successfully.")
+                    .mention(event.getUser()).setEphemeral(false).queue();
+        else {
+            String removeEvidenceId = AbilityWarsBot.BUTTON_ID_UNREGISTER_EVIDENCE + '_' + previousEvidenceId;
+            Button removeEvidenceButton = Button.of(ButtonStyle.DANGER, removeEvidenceId, "Unregister it");
+            event.reply("Changed the evidence successfully. Do you want to remove the previous evidence?\n-# Note: the message at the top won't change.")
+                    .mention(event.getUser()).setEphemeral(false)
+                    .addComponents(ActionRow.of(removeEvidenceButton)).queue();
+        }
     }
 
     private void setPropertyRuleBroken(@Nullable String newRuleBroken, SlashCommandInteractionEvent event) throws SQLException {
@@ -832,38 +839,35 @@ public class AWPlayerReportTicket extends AWTicket {
 
     @Override
     public Modal createInputModal(long newTicketId) {
-        TextInput usernameInput = TextInput
-                .create("username", "Username", TextInputStyle.SHORT)
+        Label usernameInput = Label.of("Username", TextInput
+                .create("username", TextInputStyle.SHORT)
                 .setRequired(true)
                 .setRequiredRange(2, 20)
                 .setPlaceholder("The username of the rule-breaker.")
-                .build();
-        TextInput ruleBrokenInput = TextInput
-                .create("rule", "Rule Broken", TextInputStyle.SHORT)
+                .build());
+        Label ruleBrokenInput = Label.of("Rule Broken", TextInput
+                .create("rule", TextInputStyle.SHORT)
                 .setRequired(true)
                 .setRequiredRange(-1, 128)
                 .setPlaceholder("exploiting")
-                .build();
-        TextInput evidenceInput = TextInput
-                .create("evidence", "Evidence", TextInputStyle.SHORT)
+                .build());
+        Label evidenceInput = Label.of("Evidence", TextInput
+                .create("evidence", TextInputStyle.SHORT)
                 .setRequired(false)
                 .setRequiredRange(-1, 1024)
                 .setPlaceholder("Video evidence link; leave empty to upload in Discord.")
-                .build();
-        TextInput evidenceDetails = TextInput
-                .create("details", "Timestamp and Extra Details", TextInputStyle.PARAGRAPH)
+                .build());
+        Label evidenceDetails = Label.of("Timestamp and Extra Details", TextInput
+                .create("details", TextInputStyle.PARAGRAPH)
                 .setRequired(false)
                 .setRequiredRange(-1, 1024)
                 .setPlaceholder("The time in the video of the rule-break, if applicable, and other details.")
-                .build();
+                .build());
 
         Type type = this.type();
         String customId = type.getCreationModalCustomId() + "_" + newTicketId;
         return Modal.create(customId, type.description)
-                .addActionRow(usernameInput)
-                .addActionRow(ruleBrokenInput)
-                .addActionRow(evidenceInput)
-                .addActionRow(evidenceDetails)
+                .addComponents(usernameInput, ruleBrokenInput, evidenceInput, evidenceDetails)
                 .build();
     }
 
@@ -886,7 +890,7 @@ public class AWPlayerReportTicket extends AWTicket {
         User ticketOwner = jda.getUserById(this.ownerDiscordId);
 
         EmbedBuilder eb = new EmbedBuilder();
-        if (this.accusedUserBustImageURL != null)
+        if (this.accusedUserBustImageURL != null && EmbedBuilder.URL_PATTERN.matcher(this.accusedUserBustImageURL).matches())
             eb.setThumbnail(this.accusedUserBustImageURL);
         eb.setColor(new Color(103, 110, 233));
         eb.setTitle("Ticket " + this.id);
@@ -941,10 +945,10 @@ public class AWPlayerReportTicket extends AWTicket {
                         .setColor(Color.orange)
                         .setTitle("Are you sure you want to cancel this report?")
                         .setDescription(clickedUser.getAsMention() + ", please confirm you'd like to cancel this report. This action cannot be undone.");
-                event.replyEmbeds(eb.build()).addActionRow(
+                event.replyEmbeds(eb.build()).addComponents(ActionRow.of(
                         Button.secondary(AbilityWarsBot.BUTTON_ID_DELETE_PARENT_MESSAGE, "No"),
                         Button.danger(AbilityWarsBot.BUTTON_ID_CANCEL_TICKET_CONFIRM, "Yes")
-                ).setEphemeral(true).queue();
+                )).setEphemeral(true).queue();
                 return;
             }
             event.reply("You must be the ticket opener or staff to cancel this ticket.").setEphemeral(true).queue();

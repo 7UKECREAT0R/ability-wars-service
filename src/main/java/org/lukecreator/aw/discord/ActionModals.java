@@ -1,11 +1,12 @@
 package org.lukecreator.aw.discord;
 
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.AWTicket;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
@@ -123,11 +124,11 @@ public class ActionModals {
     public static Modal closeTicketWithCustomReason(AWTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_WITH_REASON, ticket.id), "Resolve Ticket with Reason")
-                .addActionRow(TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
+                .addComponents(Label.of("Reason", TextInput.create("reason", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("e.g., please only open one ticket at a time!")
                         .setRequired(true)
-                        .build())
-                .build();
+                        .build()
+                )).build();
     }
 
     private static void impl_closeTicketWithCustomReason(ModalInteractionEvent event, AWTicket ticket) throws SQLException {
@@ -172,13 +173,12 @@ public class ActionModals {
      * @param templateInputs Input fields to populate the template string. At least one and at most five inputs are required.
      * @return A constructed modal with the specified parameters and input fields.
      */
-    public static Modal closeTicketWithTemplatedReason(AWTicket ticket, String modalTitle, String templateString, TextInput... templateInputs) {
+    public static Modal closeTicketWithTemplatedReason(AWTicket ticket, String modalTitle, String templateString, Label... templateInputs) {
         assert templateInputs.length > 0 && templateInputs.length <= 5;
 
         long templateStringEncoded = encodeString(templateString);
         Modal.Builder modal = Modal.create(createId(ACTION_CLOSE_WITH_TEMPLATED_REASON, ticket.id, String.valueOf(templateStringEncoded)), modalTitle);
-        for (TextInput templateInput : templateInputs)
-            modal.addActionRow(templateInput);
+        modal.addComponents(templateInputs);
         return modal.build();
     }
 
@@ -192,7 +192,7 @@ public class ActionModals {
         List<ModalMapping> inputs = event.getValues();
 
         for (ModalMapping input : inputs) {
-            String replacementKey = "{" + input.getId() + '}';
+            String replacementKey = "{" + input.getCustomId() + '}';
             String value = input.getAsString();
             templateString = templateString.replace(replacementKey, value);
         }
@@ -215,10 +215,10 @@ public class ActionModals {
         long reasonEncoded = encodeString(presetReason);
         return Modal
                 .create(createId(ACTION_CLOSE_AND_BAN, ticket.id, String.valueOf(reasonEncoded)), "Close Ticket and Ban")
-                .addActionRow(TextInput.create("exploit", "Exploit Name", TextInputStyle.SHORT)
+                .addComponents(Label.of("Exploit Name", TextInput.create("exploit", TextInputStyle.SHORT)
                         .setPlaceholder("killaura, fly, speed, teleport, etc...")
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -277,14 +277,14 @@ public class ActionModals {
     public static Modal closeTicketAndBanWithCustomReason(AWPlayerReportTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_BAN_WITH_REASON, ticket.id), "Close Ticket and Ban")
-                .addActionRow(TextInput.create("exploit", "Ban Reason", TextInputStyle.SHORT)
+                .addComponents(Label.of("Ban Reason", TextInput.create("exploit", TextInputStyle.SHORT)
                         .setPlaceholder("killaura, fly, speed, teleport, etc...")
                         .setRequired(true)
-                        .build())
-                .addActionRow(TextInput.create("reason", "Ticket Close Reason", TextInputStyle.SHORT)
+                        .build()))
+                .addComponents(Label.of("Ticket Close Reason", TextInput.create("reason", TextInputStyle.SHORT)
                         .setPlaceholder("e.g.: Banned, but please try to record in a higher resolution next time!")
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -348,13 +348,13 @@ public class ActionModals {
         long reasonEncoded = encodeString(presetReason);
         return Modal
                 .create(createId(ACTION_CLOSE_AND_TEMPBAN, ticket.id, String.valueOf(reasonEncoded)), "Close Ticket and Temporarily Ban")
-                .addActionRow(TextInput.create("exploit", "Exploit Name", TextInputStyle.SHORT)
+                .addComponents(Label.of("Exploit Name", TextInput.create("exploit", TextInputStyle.SHORT)
                         .setPlaceholder("killaura, fly, speed, teleport, etc...")
                         .setRequired(true)
-                        .build())
-                .addActionRow(TextInput.create("duration", "Duration (days)", TextInputStyle.SHORT)
+                        .build()))
+                .addComponents(Label.of("Duration (days)", TextInput.create("duration", TextInputStyle.SHORT)
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -428,17 +428,17 @@ public class ActionModals {
     public static Modal closeTicketAndTempbanWithCustomReason(AWPlayerReportTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_TEMPBAN_WITH_REASON, ticket.id), "Close Ticket and Ban")
-                .addActionRow(TextInput.create("exploit", "Ban Reason", TextInputStyle.SHORT)
+                .addComponents(Label.of("Ban Reason", TextInput.create("exploit", TextInputStyle.SHORT)
                         .setPlaceholder("killaura, fly, speed, teleport, etc...")
                         .setRequired(true)
-                        .build())
-                .addActionRow(TextInput.create("reason", "Ticket Close Reason", TextInputStyle.SHORT)
+                        .build()))
+                .addComponents(Label.of("Ticket Close Reason", TextInput.create("reason", TextInputStyle.SHORT)
                         .setPlaceholder("e.g.: Banned, but please try to record in a higher resolution next time!")
                         .setRequired(true)
-                        .build())
-                .addActionRow(TextInput.create("duration", "Duration (days)", TextInputStyle.SHORT)
+                        .build()))
+                .addComponents(Label.of("Duration (days)", TextInput.create("duration", TextInputStyle.SHORT)
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -509,10 +509,10 @@ public class ActionModals {
     public static Modal closeTicketAndRetimeBan(AWUnbanTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_RETIME_BAN, ticket.id), "Close Ticket and Retime Ban")
-                .addActionRow(TextInput.create("duration", "New Duration (days)", TextInputStyle.SHORT)
+                .addComponents(Label.of("New Duration (days)", TextInput.create("duration", TextInputStyle.SHORT)
                         .setPlaceholder("Type -1 to make the ban permanent.")
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -577,10 +577,10 @@ public class ActionModals {
     public static Modal closeTicketAndUnbanWithCustomReason(AWUnbanTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_UNBAN_WITH_REASON, ticket.id), "Close Ticket and Unban")
-                .addActionRow(TextInput.create("reason", "Ticket Close Reason", TextInputStyle.PARAGRAPH)
+                .addComponents(Label.of("Ticket Close Reason", TextInput.create("reason", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("e.g.: Unbanned, but seriously, re-read the rules.")
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -588,7 +588,7 @@ public class ActionModals {
         final AWUnbanTicket ticket = (AWUnbanTicket) _ticket;
         ModalMapping reasonMapping = event.getValue("reason");
         if (reasonMapping == null) {
-            event.reply("Strange error: missing field in the modal response?").queue();
+            event.reply("Strange error: missing field in the modal response?").setEphemeral(true).queue();
             return;
         }
         final String reason = reasonMapping.getAsString();
@@ -609,14 +609,14 @@ public class ActionModals {
     public static Modal closeTicketAndBlacklistWithCustomReason(AWUnbanTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_APPEAL_BLACKLIST_WITH_REASON, ticket.id), "Close Ticket and Blacklist")
-                .addActionRow(TextInput.create("blacklist-reason", "Blacklist Reason", TextInputStyle.PARAGRAPH)
+                .addComponents(Label.of("Blacklist Reason", TextInput.create("blacklist-reason", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("This will not show to the user.")
                         .setRequired(true)
-                        .build())
-                .addActionRow(TextInput.create("close-reason", "Ticket Close Reason", TextInputStyle.PARAGRAPH)
+                        .build()))
+                .addComponents(Label.of("Ticket Close Reason", TextInput.create("close-reason", TextInputStyle.PARAGRAPH)
                         .setPlaceholder("The reason to show to the user.")
                         .setRequired(true)
-                        .build())
+                        .build()))
                 .build();
     }
 
@@ -625,7 +625,7 @@ public class ActionModals {
         ModalMapping blacklistReasonMapping = event.getValue("blacklist-reason");
         ModalMapping closeReasonMapping = event.getValue("close-reason");
         if (blacklistReasonMapping == null || closeReasonMapping == null) {
-            event.reply("Strange error: missing field in the modal response?").queue();
+            event.reply("Strange error: missing field in the modal response?").setEphemeral(true).queue();
             return;
         }
         final String blacklistReason = blacklistReasonMapping.getAsString();

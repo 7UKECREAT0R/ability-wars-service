@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
+import net.dv8tion.jda.api.components.tree.MessageComponentTree;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -21,10 +22,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import org.apache.commons.text.similarity.LevenshteinDistance;
@@ -41,7 +39,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -399,14 +396,12 @@ public class AbilityWarsBot extends ListenerAdapter {
 
                 try {
                     AWEvidence.removeFromDatabase(evidenceToDelete);
-                    List<ItemComponent> components = event.getMessage().getActionRows().get(0).getComponents();
-                    for (int i = 0; i < components.size(); i++) {
-                        ItemComponent ic = components.get(i);
-                        if (ic instanceof Button button) {
-                            components.set(i, button.asDisabled());
-                        }
-                    }
-                    event.getMessage().editMessageComponents(ActionRow.of(components)).queue();
+
+                    // disable ALL interactive items
+                    MessageComponentTree tree = event.getMessage().getComponentTree();
+                    tree = tree.asDisabled();
+                    event.getMessage().editMessageComponents(tree.getComponents()).queue();
+
                     event.reply("Successfully deleted the previous evidence.").queue();
                 } catch (SQLException e) {
                     e.printStackTrace();

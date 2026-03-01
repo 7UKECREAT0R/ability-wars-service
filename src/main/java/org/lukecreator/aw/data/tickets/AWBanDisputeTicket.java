@@ -2,16 +2,18 @@ package org.lukecreator.aw.data.tickets;
 
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 
 import java.awt.*;
 import java.sql.SQLException;
@@ -71,9 +73,11 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
                     .setColor(Color.orange)
                     .build();
             channel.sendMessageEmbeds(embed)
-                    .addActionRow(
-                            Button.of(ButtonStyle.SUCCESS, "evidenceagree", "I Agree"),
-                            Button.of(ButtonStyle.DANGER, "evidencedisagree", "I Disagree")
+                    .addComponents(
+                            ActionRow.of(
+                                    Button.of(ButtonStyle.SUCCESS, "evidenceagree", "I Agree"),
+                                    Button.of(ButtonStyle.DANGER, "evidencedisagree", "I Disagree")
+                            )
                     ).mention(UserSnowflake.fromId(this.ownerDiscordId)).queue();
         }
     }
@@ -81,8 +85,8 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
 
     @Override
     public Modal.Builder finishInputModal(Modal.Builder modal) {
-        return modal.addActionRow(
-                TextInput.create("question-a", "What were you false-banned for?", TextInputStyle.PARAGRAPH)
+        return modal.addComponents(
+                Label.of("What were you false-banned for?", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
@@ -90,21 +94,19 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
                                 "Don't speculate. Tell us why you were banned from our Discord." :
                                 "Don't speculate. Tell us why you were banned from Ability Wars."
                         )
-                        .build()
-        ).addActionRow(
-                TextInput.create("question-b", "What do you think happened?", TextInputStyle.PARAGRAPH)
+                        .build()),
+                Label.of("What do you think happened?", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                         .setPlaceholder("Explain exactly what you think happened, in detail.")
-                        .build()
-        ).addActionRow(
-                TextInput.create("question-c", "Agreement", TextInputStyle.SHORT)
+                        .build()),
+                Label.of("Agreement", TextInput.create("question-c", TextInputStyle.SHORT)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                         .setPlaceholder("Please swear that your answers are the full truth.")
-                        .build()
+                        .build())
         );
     }
 

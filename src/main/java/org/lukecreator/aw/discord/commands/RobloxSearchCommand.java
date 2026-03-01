@@ -49,7 +49,7 @@ public class RobloxSearchCommand extends BotCommand {
         EmbedBuilder eb = new EmbedBuilder()
                 .setTitle("Roblox Search")
                 .setDescription("Search results for \"" + username + "\"")
-                .setColor(callingUser.getColor());
+                .setColor(callingUser.getColors().getPrimary());
 
         eb.addField("Username", user.username(), true);
         eb.addField("ID", String.valueOf(user.userId()), true);

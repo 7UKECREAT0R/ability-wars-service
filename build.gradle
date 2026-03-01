@@ -1,9 +1,9 @@
 plugins {
-    id 'org.springframework.boot' version '3.4.2'
+    id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'application'
     id 'java'
-    id 'com.gradleup.shadow' version "9.0.0-beta7"
+    id 'com.gradleup.shadow' version "9.0.2"
 }
 
 group = 'org.lukecreator'
@@ -17,14 +17,30 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
-    implementation platform('org.springframework.boot:spring-boot-dependencies:3.4.8')
-    implementation("org.apache.commons:commons-text:1.14.0")
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.0.3')
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-text
+    implementation("org.apache.commons:commons-text:1.15.0")
+
+    // don't need updates, I think they're just templates
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter
     implementation 'org.springframework.boot:spring-boot-starter'
-    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.48.0.0'
-    implementation group: 'com.google.code.gson', name: 'gson', version: '2.12.1'
-    implementation group: 'net.dv8tion', name: 'JDA', version: '5.6.1'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.13.0'
+
+    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.51.2.0'
+
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.13.2'
+
+    // https://mvnrepository.com/artifact/net.dv8tion/JDA
+    implementation group: 'net.dv8tion', name: 'JDA', version: '6.3.1'
+
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-text
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.15.0'
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 }
 
@@ -37,12 +53,12 @@ application {
 }
 
 shadowJar {
-    archiveFileName = 'aw-service.jar'
+    archiveFileName = 'dont-use-this.jar'
     mergeServiceFiles()
     manifest {
         attributes(
                 'Main-Class': application.mainClass,
-                'Spring-Boot-Version': '3.4.2',
+                'Spring-Boot-Version': '4.0.3',
                 'Start-Class': application.mainClass
         )
     }

@@ -1,7 +1,7 @@
 package org.lukecreator.aw.data.tickets;
 
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 
 /**
  * An action that can be taken on an open ticket.

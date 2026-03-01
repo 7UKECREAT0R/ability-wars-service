@@ -152,7 +152,7 @@ public class AWTicketsManager {
             for (Message message : messages) {
                 if (message.getAuthor().getIdLong() != selfUserId)
                     continue;
-                if (!message.getActionRows().isEmpty() && !message.getEmbeds().isEmpty()) {
+                if (!message.getComponents().isEmpty() && !message.getEmbeds().isEmpty()) {
                     foundDashboardMessage = true;
                     break;
                 }

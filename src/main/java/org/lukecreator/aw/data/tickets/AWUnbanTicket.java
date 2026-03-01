@@ -3,6 +3,10 @@ package org.lukecreator.aw.data.tickets;
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -11,11 +15,8 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -123,7 +124,7 @@ public abstract class AWUnbanTicket extends AWTicket {
         reason = reason.toUpperCase();
         int score = 0;
 
-        // "You created or used an account to avoid an enforcement action taken against another account within this experience"
+        // "You created or used an account to avoid an enforcement action taken against another account within this experience (Error Code: 600)"
         if (reason.contains("YOU CREATED OR USED AN ACCOUNT"))
             score++;
         if (reason.contains("ENFORCEMENT ACTION"))
@@ -131,6 +132,12 @@ public abstract class AWUnbanTicket extends AWTicket {
         if (reason.contains("TAKEN AGAINST ANOTHER ACCOUNT WITHIN"))
             score++;
         if (reason.contains("WITHIN THIS EXPERIENCE"))
+            score++;
+        if (reason.contains("(ERROR CODE: 600)"))
+            score++;
+        if (reason.contains("ERROR CODE"))
+            score++;
+        if (reason.contains("600"))
             score++;
         return score >= 2;
     }
@@ -487,25 +494,24 @@ public abstract class AWUnbanTicket extends AWTicket {
 
     @Override
     public Modal createInputModal(long newTicketId) {
-        TextInput discordOrRobloxInput = TextInput
-                .create("discord-or-roblox", "For Discord or Roblox?", TextInputStyle.SHORT)
+        Label discordOrRobloxInput = Label.of("For Discord or Roblox?", TextInput
+                .create("discord-or-roblox", TextInputStyle.SHORT)
                 .setPlaceholder("\"discord\" or \"roblox\", nothing else.")
                 .setMinLength(5)
                 .setMaxLength(8)
                 .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                .build();
-        TextInput usernameInput = TextInput
-                .create("user-id", "User ID", TextInputStyle.SHORT)
+                .build());
+        Label usernameInput = Label.of("User ID", TextInput
+                .create("user-id", TextInputStyle.SHORT)
                 .setPlaceholder("Your Roblox/Discord ID.")
                 .setMinLength(6)
                 .setMaxLength(32)
-                .build();
+                .build());
 
         Type type = this.type();
         String customId = type.getCreationModalCustomId() + "_" + newTicketId;
         return this.finishInputModal(Modal.create(customId, type.description)
-                .addActionRow(discordOrRobloxInput)
-                .addActionRow(usernameInput)
+                .addComponents(discordOrRobloxInput, usernameInput)
         ).build();
     }
 
@@ -631,17 +637,20 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "closefortime": {
                 Modal modal = ActionModals.closeTicketWithTemplatedReason(this, "Resolve (Time Waited)",
                         "Please open an appeal in {months} months as per <#" + INFO_CHANNEL_ID + ">.",
-                        TextInput.create("months", "Months Until...", TextInputStyle.SHORT)
+                        Label.of("Months Until...", TextInput.create("months", TextInputStyle.SHORT)
                                 .setPlaceholder("The number of months until the user can appeal.")
-                                .build());
+                                .build()));
                 event.replyModal(modal).queue();
-
                 break;
             }
             case "closeloweffort": {
                 event.deferEdit().queue();
                 try {
                     this.close(event.getJDA(), clickedUser, "Please try a little harder with writing your %s.".formatted(this.isAppeal() ? "appeal" : "dispute"), null, null);
+
+                    // file a physical report in the #transcripts channel
+                    String actionDescription = "Closed for poorly written/low effort appeal.";
+                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, actionDescription);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -775,7 +784,9 @@ public abstract class AWUnbanTicket extends AWTicket {
 
         // close any related tickets
         if (!this.relatedTickets.isEmpty()) {
-            for (AWUnbanTicket ticket : this.relatedTickets)
+            List<AWUnbanTicket> temp = new ArrayList<>(this.relatedTickets);
+            this.relatedTickets.clear(); // prevent stack overflow
+            for (AWUnbanTicket ticket : temp)
                 ticket.close(jda, closedByUser, closeReason, onSuccess, additionalUserEmbed);
         }
     }

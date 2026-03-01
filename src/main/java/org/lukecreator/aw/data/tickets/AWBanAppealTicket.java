@@ -2,13 +2,14 @@ package org.lukecreator.aw.data.tickets;
 
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.textinput.TextInput;
+import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
@@ -69,29 +70,27 @@ public class AWBanAppealTicket extends AWUnbanTicket {
 
     @Override
     public Modal.Builder finishInputModal(Modal.Builder modal) {
-        return modal.addActionRow(
-                TextInput.create("question-a", "Why were you banned?", TextInputStyle.PARAGRAPH)
+        return modal.addComponents(
+                Label.of("Why were you banned?", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
-                        .setMinLength(2)
+                        .setMinLength(10)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                         .setPlaceholder(this.isForDiscord ?
                                 "Tell us why you were banned from our Discord." :
                                 "Tell us why you were banned from Ability Wars."
                         )
-                        .build()
-        ).addActionRow(
-                TextInput.create("question-b", "Why should you be unbanned?", TextInputStyle.PARAGRAPH)
+                        .build()),
+                Label.of("Why should you be unbanned?", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
-                        .setMinLength(2)
+                        .setMinLength(10)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                         .setPlaceholder("We're taking a risk by unbanning you. Why should we?")
-                        .build()
-        ).addActionRow(
-                TextInput.create("question-c", "Anything else you'd like to tell us?", TextInputStyle.PARAGRAPH)
+                        .build()),
+                Label.of("Anything else you'd like to tell us?", TextInput.create("question-c", TextInputStyle.PARAGRAPH)
                         .setRequired(false)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .build()
+                        .build())
         );
     }
 
