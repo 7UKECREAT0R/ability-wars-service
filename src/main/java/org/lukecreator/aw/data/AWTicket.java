@@ -660,7 +660,8 @@ public abstract class AWTicket {
                                 extraButtons--;
                             }
                             List<ActionRowChildComponent> row = new ArrayList<>(onThisRow);
-                            row.add(buttons[b++]);
+                            for (int j = 0; j < onThisRow; j++)
+                                row.add(buttons[b++]);
                             action.addComponents(ActionRow.of(row));
                         }
                     } else {

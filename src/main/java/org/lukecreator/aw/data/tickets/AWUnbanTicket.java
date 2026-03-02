@@ -839,7 +839,13 @@ public abstract class AWUnbanTicket extends AWTicket {
             return;
         }
 
-        this.isForDiscord = this.parseIsForDiscord(discordOrRobloxMapping.getAsString());
+        List<String> discordOrRobloxUserPicks = discordOrRobloxMapping.getAsStringList();
+        if (discordOrRobloxUserPicks.isEmpty()) {
+            event.getHook().editOriginal("You must pick \"Discord\" or \"Roblox\" when creating a ticket.").queue();
+            onFinishedLoading.accept(false);
+            return;
+        }
+        this.isForDiscord = this.parseIsForDiscord(discordOrRobloxUserPicks.get(0));
 
         String userIdString = userIdMapping.getAsString();
         try {
