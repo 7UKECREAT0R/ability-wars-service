@@ -106,17 +106,18 @@ public abstract class AWTicket {
             throw new IllegalArgumentException("This ticket type isn't available in this server.");
         }
 
-        int maxTicketsPerUser = ticketType.maxTicketsPerUser;
-        int ticketsThisUserHasOpen = 0;
+        int ticketsInSameCategory = 0;
         for (AWTicket openTicket : AWTicketsManager.getOpenTickets()) {
-            if (openTicket.type() != ticketType)
+            if (openTicket.type().maxTicketsId != ticketType.maxTicketsId)
                 continue;
-            if (openTicket.ownerDiscordId == ticketOwner.getIdLong())
-                ticketsThisUserHasOpen++;
+            if (openTicket.ownerDiscordId != ticketOwner.getIdLong())
+                continue;
+            ticketsInSameCategory++;
         }
-        if (ticketsThisUserHasOpen >= maxTicketsPerUser) {
+        if (ticketsInSameCategory >= ticketType.maxTicketsPerUser) {
             AWTicket.decrementNextAvailableTicketID();
-            throw new IllegalArgumentException("You have too many tickets open! Please wait until your previous ticket(s) are closed.");
+            String ticketsPlural = ticketsInSameCategory == 1 ? "ticket is" : "tickets are";
+            throw new IllegalArgumentException("You have too many tickets open! Please wait until your previous " + ticketsPlural + " closed.");
         }
 
         // check that we can actually fit another ticket in the category
@@ -803,13 +804,13 @@ public abstract class AWTicket {
      * A type of ticket.
      */
     public enum Type {
-        PlayerReport("player-report", "Player Report", 0xA0, 3,
+        PlayerReport("player-report", "Player Report", 0xA0, 3, 0,
                 "report-", "Report a player for breaking the rules", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_PLAYER_REPORTS),
-        BanAppeal("ban-appeal", "Ban Appeal", 0xB0, 1,
+        BanAppeal("ban-appeal", "Ban Appeal", 0xB0, 1, 1,
                 "appeal-", "Appeal a ban for exploiting", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_APPEALS),
-        BanDispute("ban-dispute", "Ban Dispute", 0xB1, 1,
+        BanDispute("ban-dispute", "Ban Dispute", 0xB1, 1, 1,
                 "dispute-", "Dispute a ban that was a mistake by staff", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_DISPUTES),
-        BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1,
+        BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1, 2,
                 "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS);
 
         public static final Type[] MAIN_SERVER_TYPES = Arrays
@@ -831,7 +832,14 @@ public abstract class AWTicket {
         public final String identifier;
         public final String title;
         public final int id;
+        /**
+         * The maximum number of tickets a single user is allowed to create for the category defined by {@link #maxTicketsId}
+         */
         public final int maxTicketsPerUser;
+        /**
+         * The ID of the category that should be used when counting how many tickets a user has opened concurrently.
+         */
+        public final int maxTicketsId;
         public final String channelPrefix;
         public final String description;
         public final long guildId;
@@ -846,11 +854,12 @@ public abstract class AWTicket {
          *  <li>0xB... appeals server ticket types</li>
          * </ul>
          */
-        Type(String identifier, String title, int id, int maxTicketsPerUser, String channelPrefix, String description, long guildId, long channelCategoryId) {
+        Type(String identifier, String title, int id, int maxTicketsPerUser, int maxTicketsId, String channelPrefix, String description, long guildId, long channelCategoryId) {
             this.identifier = identifier;
             this.title = title;
             this.id = id;
             this.maxTicketsPerUser = maxTicketsPerUser;
+            this.maxTicketsId = maxTicketsId;
             this.channelPrefix = channelPrefix;
             this.description = description;
             this.guildId = guildId;
