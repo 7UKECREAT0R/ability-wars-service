@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.*;
@@ -494,12 +495,11 @@ public abstract class AWUnbanTicket extends AWTicket {
 
     @Override
     public Modal createInputModal(long newTicketId) {
-        Label discordOrRobloxInput = Label.of("For Discord or Roblox?", TextInput
-                .create("discord-or-roblox", TextInputStyle.SHORT)
-                .setPlaceholder("\"discord\" or \"roblox\", nothing else.")
-                .setMinLength(5)
-                .setMaxLength(8)
-                .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
+        Label discordOrRobloxInput = Label.of("Where are you banned from?", StringSelectMenu
+                .create("discord-or-roblox")
+                .addOption("Discord", "discord")
+                .addOption("Roblox", "roblox")
+                .setRequiredRange(1, 1)
                 .build());
         Label usernameInput = Label.of("User ID", TextInput
                 .create("user-id", TextInputStyle.SHORT)
