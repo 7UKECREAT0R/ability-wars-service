@@ -137,4 +137,18 @@ public class InfoFulfillment extends Fulfillment {
                 .map(RobloxAPI.Gamepass::name)
                 .toList().toArray(new String[0]);
     }
+
+    /**
+     * Determines whether the user is currently banned based on the list of bans.
+     * A user is considered currently banned if their most recent ban has not ended yet
+     * or if the ban's end time is unspecified.
+     *
+     * @return {@code true} if the user is currently banned; {@code false} otherwise.
+     */
+    public boolean isCurrentlyBanned() {
+        if (this.bans == null || this.bans.length == 0)
+            return false;
+        AWBan lastBan = this.bans[this.bans.length - 1];
+        return lastBan.ends() == null || lastBan.ends() > System.currentTimeMillis();
+    }
 }

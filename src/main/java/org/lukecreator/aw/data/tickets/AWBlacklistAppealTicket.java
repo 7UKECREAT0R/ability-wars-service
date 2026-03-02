@@ -16,6 +16,7 @@ import org.lukecreator.aw.data.AWTicket;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class AWBlacklistAppealTicket extends AWTicket {
     public AWBlacklistAppealTicket(long id,
@@ -94,8 +95,8 @@ public class AWBlacklistAppealTicket extends AWTicket {
     }
 
     @Override
-    public boolean loadFromModalResponse(ModalInteractionEvent event) throws SQLException {
-        return false;
+    public void loadFromModalResponse(ModalInteractionEvent event, Consumer<Boolean> onFinishedLoading) throws SQLException {
+        onFinishedLoading.accept(false);
     }
 
 }

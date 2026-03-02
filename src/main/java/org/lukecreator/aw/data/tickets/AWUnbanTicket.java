@@ -3,6 +3,8 @@ package org.lukecreator.aw.data.tickets;
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.components.selections.StringSelectMenu;
@@ -827,13 +829,14 @@ public abstract class AWUnbanTicket extends AWTicket {
     }
 
     @Override
-    public boolean loadFromModalResponse(ModalInteractionEvent event) throws SQLException {
+    public void loadFromModalResponse(ModalInteractionEvent event, Consumer<Boolean> onFinishedLoading) throws SQLException {
         ModalMapping discordOrRobloxMapping = event.getValue("discord-or-roblox");
         ModalMapping userIdMapping = event.getValue("user-id");
 
         if (discordOrRobloxMapping == null || userIdMapping == null) {
             event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
-            return false;
+            onFinishedLoading.accept(false);
+            return;
         }
 
         this.isForDiscord = this.parseIsForDiscord(discordOrRobloxMapping.getAsString());
@@ -850,7 +853,8 @@ public abstract class AWUnbanTicket extends AWTicket {
                 if (this.robloxUserToUnban == null) {
                     event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userId + "`. Please try again.\n" +
                             "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
-                    return false;
+                    onFinishedLoading.accept(false);
+                    return;
                 }
             }
         } catch (NumberFormatException ignored) {
@@ -860,7 +864,8 @@ public abstract class AWUnbanTicket extends AWTicket {
                 if (possibleDiscordUsers.isEmpty()) {
                     event.getHook().editOriginal("Your input for \"User ID\" was not valid. Please input your Discord ID.\n" +
                             "-# To get your Discord ID, right click your name and click \"Copy User ID\". If you don't see that option, go to `Settings` → `Advanced` → Turn on `Developer Mode`.").queue();
-                    return false;
+                    onFinishedLoading.accept(false);
+                    return;
                 }
                 this.discordIdToUnban = possibleDiscordUsers.get(0).getIdLong();
             } else {
@@ -868,7 +873,8 @@ public abstract class AWUnbanTicket extends AWTicket {
                 if (possibleRobloxUser == null) {
                     event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +
                             "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
-                    return false;
+                    onFinishedLoading.accept(false);
+                    return;
                 }
                 this.robloxIdToUnban = possibleRobloxUser.userId();
                 this.robloxUserToUnban = possibleRobloxUser;
@@ -880,7 +886,8 @@ public abstract class AWUnbanTicket extends AWTicket {
             Guild abilityWars = event.getJDA().getGuildById(AbilityWarsBot.AW_GUILD_ID);
             if (abilityWars == null) {
                 event.getHook().editOriginal("Something went wrong: The Ability Wars server is unavailable right now. Try again in a couple minutes.").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
             UserSnowflake discordToUnban = UserSnowflake.fromId(this.discordIdToUnban);
             this.discordBan = abilityWars.retrieveBan(discordToUnban)
@@ -889,20 +896,28 @@ public abstract class AWUnbanTicket extends AWTicket {
             if (this.discordBan == null) {
                 event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is not currently banned from the Ability Wars Discord. You can rejoin using our invite link `discord.gg/abilitywars`.\n\n" +
                         "If you're still unable to join, please make sure to appeal for any alternate accounts you may be banned on.").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
 
             // check for blacklist
             DiscordAppealBlacklist appealBlacklist = DiscordAppealBlacklist.get(this.discordIdToUnban);
             if (appealBlacklist != null) {
                 event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is blacklisted. This ticket cannot be opened.").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
+
+            // check for any other tickets that are appealing for the same account
+            this.collectRelatedTickets(true);
+            onFinishedLoading.accept(true);
+            return;
         } else {
             if (this.robloxUserToUnban == null) {
                 event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +
                         "-# To get your Roblox ID, go to your profile on Roblox, and your ID is the set of numbers in the address. Example: `https://www.roblox.com/users/`**`3233825722`**`/profile`").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
 
             // check for blacklist
@@ -910,12 +925,26 @@ public abstract class AWUnbanTicket extends AWTicket {
                     true, true, true, false);
             if (player.isAppealBlacklisted()) {
                 event.getHook().editOriginal("The Roblox user [%s](%s) is blacklisted. This ticket cannot be opened.".formatted(this.robloxUserToUnban.username(), this.robloxUserToUnban.getProfileURL())).queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
-        }
 
-        // check for any other tickets that are appealing for the same account
-        this.collectRelatedTickets(true);
-        return true;
+            // make sure the user is actually banned.
+            PendingRequest infoRequest = new InfoRequest(PendingRequest.getNextRequestId(), this.robloxIdToUnban).onFulfilled(info -> {
+                if (!((InfoFulfillment) info).isCurrentlyBanned()) {
+                    // we didn't ban this user. so either they have the wrong account, or they're IP banned on another account
+                    event.getHook().editOriginal("The Roblox user [%s](%s) is not currently banned from the game. This ticket cannot be opened.".formatted(this.robloxUserToUnban.username(), this.robloxUserToUnban.getProfileURL()))
+                            .setComponents(ActionRow.of(Button.secondary(AbilityWarsBot.BUTTON_ID_EXPLAIN_IP_BAN, "I still can't join")))
+                            .queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
+                // check for any other tickets that are appealing for the same account
+                this.collectRelatedTickets(true);
+                onFinishedLoading.accept(true);
+                return;
+            });
+            PendingRequests.add(infoRequest);
+        }
     }
 }

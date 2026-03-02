@@ -433,7 +433,7 @@ public class AbilityWarsBot extends ListenerAdapter {
                 break;
             }
             case "TICKET": {
-                AWTicket ticket = AWTicketsManager.AWAITING_MODAL_RESPONSE.remove(id);
+                final AWTicket ticket = AWTicketsManager.AWAITING_MODAL_RESPONSE.remove(id);
                 if (ticket == null) {
                     event.reply("Something went wrong when trying to submit this ticket (did you wait too long on the form?). Please try again!").setEphemeral(true).queue();
                     return;
@@ -444,27 +444,27 @@ public class AbilityWarsBot extends ListenerAdapter {
 
                     // load the responses into the data structure
                     // will also reply to the event if the data is invalid
-                    boolean success = ticket.loadFromModalResponse(event);
+                    ticket.loadFromModalResponse(event, (success) -> {
+                        if (!success)
+                            return; // stop here, input was invalid and the message has probably been updated elsewhere.
 
-                    if (!success)
-                        return; // stop here, input was invalid
+                        // open the channel
+                        ticket.createOrGetChannel(event.getJDA(), (channel -> {
+                            ticket.afterTicketChannelCreated(channel);
+                            AWTicketsManager.addNewTicketToCache(ticket);
 
-                    // open the channel
-                    ticket.createOrGetChannel(event.getJDA(), (channel -> {
-                        ticket.afterTicketChannelCreated(channel);
-                        AWTicketsManager.addNewTicketToCache(ticket);
+                            String successMessage = "Your ticket has been successfully opened: " + channel.getAsMention();
 
-                        String successMessage = "Your ticket has been successfully opened: " + channel.getAsMention();
-
-                        // we're done with the ticket for now, update it in the database
-                        try {
-                            ticket.updateInDatabase();
-                        } catch (SQLException e) {
-                            e.printStackTrace();
-                        } finally {
-                            event.getInteraction().getHook().editOriginal(successMessage).queue();
-                        }
-                    }), (error -> event.getHook().editOriginal("Failed to open the ticket. Error from Discord: `%s`".formatted(error.getMessage() != null ? error.getMessage() : "No message provided")).queue()));
+                            // we're done with the ticket for now, update it in the database
+                            try {
+                                ticket.updateInDatabase();
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            } finally {
+                                event.getInteraction().getHook().editOriginal(successMessage).queue();
+                            }
+                        }), (error -> event.getHook().editOriginal("Failed to open the ticket. Error from Discord: `%s`".formatted(error.getMessage() != null ? error.getMessage() : "No message provided")).queue()));
+                    });
                 } catch (java.sql.SQLException e) {
                     e.printStackTrace();
                     if (event.isAcknowledged()) {

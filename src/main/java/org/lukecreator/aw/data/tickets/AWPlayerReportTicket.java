@@ -21,7 +21,6 @@ import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.BloxlinkAPI;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.*;
@@ -762,7 +761,7 @@ public class AWPlayerReportTicket extends AWTicket {
     }
 
     @Override
-    public boolean loadFromModalResponse(ModalInteractionEvent event) throws SQLException {
+    public void loadFromModalResponse(ModalInteractionEvent event, Consumer<Boolean> onFinishedLoading) throws SQLException {
         ModalMapping usernameMapping = event.getValue("username");
         ModalMapping ruleMapping = event.getValue("rule");
         ModalMapping evidenceMapping = event.getValue("evidence");
@@ -770,7 +769,8 @@ public class AWPlayerReportTicket extends AWTicket {
 
         if (usernameMapping == null || ruleMapping == null || evidenceMapping == null || evidenceDetailsMapping == null) {
             event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
-            return false;
+            onFinishedLoading.accept(false);
+            return;
         }
 
         this.accusedUsername = usernameMapping.getAsString();
@@ -784,7 +784,8 @@ public class AWPlayerReportTicket extends AWTicket {
         if (this.accusedUser == null) {
             String errorMessage = BotCommand.getUnknownUsernameDescriptor(this.accusedUsername);
             event.getHook().editOriginal(errorMessage).queue();
-            return false;
+            onFinishedLoading.accept(false);
+            return;
         }
 
         this.accusedUserBustImageURL = RobloxAPI.renderAvatarBustImageURL(this.accusedUser.userId());
@@ -794,7 +795,8 @@ public class AWPlayerReportTicket extends AWTicket {
         if (reporterRobloxId != null) {
             if (this.accusedUser.userId() == reporterRobloxId) {
                 event.getHook().editOriginal("You can't report yourself!").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
         }
 
@@ -807,7 +809,8 @@ public class AWPlayerReportTicket extends AWTicket {
                     event.getHook().editOriginal("We don't support the video host you provided ([this one](" + this.evidenceURL + ")) for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
                 else
                     event.getHook().editOriginal("We don't support " + serviceName + " for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
-                return false;
+                onFinishedLoading.accept(false);
+                return;
             }
             // supported service. create an evidence entry for it
             long id = System.currentTimeMillis(); // is probably unique
@@ -823,18 +826,26 @@ public class AWPlayerReportTicket extends AWTicket {
 
         this.accusedUsername = this.accusedUser.username();
         long reportedUserId = this.accusedUser.userId();
-        AWPlayer player = AWDatabase.loadPlayer(reportedUserId, false, true, false, false);
 
-        // if the user is currently banned, cancel and let the reporter know
-        if (player.bans.isCurrentlyBanned()) {
-            event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
-            return false;
-        }
+        PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), reportedUserId).onFulfilled(info -> {
+            // if the user is currently banned, cancel and let the reporter know
+            if (((InfoFulfillment) info).isCurrentlyBanned()) {
+                event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
+                onFinishedLoading.accept(false);
+                return;
+            }
 
-        // check if any other tickets are actively open reporting the same user and link them together
-        this.collectRelatedTickets(true);
+            // check if any other tickets are actively open reporting the same user and link them together
+            this.collectRelatedTickets(true);
 
-        return true;
+            // finish the chain
+            onFinishedLoading.accept(true);
+            return;
+        });
+
+        PendingRequests.add(request);
+        return;
+
     }
 
     @Override
