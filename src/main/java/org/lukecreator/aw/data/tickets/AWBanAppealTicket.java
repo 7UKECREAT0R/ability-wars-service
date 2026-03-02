@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
+import java.util.function.Consumer;
 
 public class AWBanAppealTicket extends AWUnbanTicket {
     /**
@@ -103,40 +104,48 @@ public class AWBanAppealTicket extends AWUnbanTicket {
     }
 
     @Override
-    public boolean loadFromModalResponse(ModalInteractionEvent event) throws SQLException {
-        if (!super.loadFromModalResponse(event))
-            return false;
-
-        // the super method already called `deferReply` with `ephemeral` true
-        ModalMapping questionAMapping = event.getInteraction().getValue("question-a");
-        ModalMapping questionBMapping = event.getInteraction().getValue("question-b");
-        ModalMapping questionCMapping = event.getInteraction().getValue("question-c");
-
-        if (questionAMapping == null || questionBMapping == null) {
-            // editing since the super.loadFromModalResponse call already sent a reply.
-            event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
-            return false;
-        }
-
-        this.questionA = questionAMapping.getAsString();
-        this.questionB = questionBMapping.getAsString();
-        this.questionC = questionCMapping == null ? null : questionCMapping.getAsString();
-
-        if (!this.isForDiscord && this.robloxUserToUnban != null) {
-            if (isReasonBecauseOfIPBan(this.questionA) || isReasonBecauseOfIPBan(this.questionB)) {
-                String username = this.robloxUserToUnban.username();
-                event.getHook().editOriginalEmbeds(getResponseForIPBan(username)).queue();
-                return false;
+    public void loadFromModalResponse(ModalInteractionEvent event, Consumer<Boolean> onFinishedLoading) throws SQLException {
+        super.loadFromModalResponse(event, superResult -> {
+            if (!superResult) {
+                onFinishedLoading.accept(false);
+                return;
             }
-        }
 
-        if (this.questionA.isBlank() || this.questionB.isBlank()) {
-            event.getHook().editOriginal("You cannot leave questions 1 or 2 blank. How did you even do this?").queue();
-            return false;
-        }
-        if (this.questionC != null && this.questionC.isBlank())
-            this.questionC = null; // don't bother dealing with a blank string. it's either null or not.
+            // the super method already called `deferReply` with `ephemeral` true
+            ModalMapping questionAMapping = event.getInteraction().getValue("question-a");
+            ModalMapping questionBMapping = event.getInteraction().getValue("question-b");
+            ModalMapping questionCMapping = event.getInteraction().getValue("question-c");
 
-        return true;
+            if (questionAMapping == null || questionBMapping == null) {
+                // editing since the super.loadFromModalResponse call already sent a reply.
+                event.getHook().editOriginal("Something went wrong: discord sent us incomplete data??? Try again in a couple minutes maybe, or report to the developers if this continues happening.").queue();
+                onFinishedLoading.accept(false);
+                return;
+            }
+
+            this.questionA = questionAMapping.getAsString();
+            this.questionB = questionBMapping.getAsString();
+            this.questionC = questionCMapping == null ? null : questionCMapping.getAsString();
+
+            if (!this.isForDiscord && this.robloxUserToUnban != null) {
+                if (isReasonBecauseOfIPBan(this.questionA) || isReasonBecauseOfIPBan(this.questionB)) {
+                    String username = this.robloxUserToUnban.username();
+                    event.getHook().editOriginalEmbeds(getResponseForIPBan(username)).queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
+            }
+
+            if (this.questionA.isBlank() || this.questionB.isBlank()) {
+                event.getHook().editOriginal("You cannot leave questions 1 or 2 blank. How did you even do this?").queue();
+                onFinishedLoading.accept(false);
+                return;
+            }
+            if (this.questionC != null && this.questionC.isBlank())
+                this.questionC = null; // don't bother dealing with a blank string. it's either null or not.
+
+            onFinishedLoading.accept(true);
+            return;
+        });
     }
 }
