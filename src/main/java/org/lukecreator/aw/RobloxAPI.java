@@ -76,6 +76,11 @@ public class RobloxAPI {
             return getUserById(robloxId);
         }
 
+        if (input.startsWith("@")) {
+            input = input.substring(1);
+            return getUserByCurrentUsername(input);
+        }
+
         try {
             // id input
             long id = Long.parseLong(input);
