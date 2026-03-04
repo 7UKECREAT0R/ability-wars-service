@@ -3,7 +3,9 @@ package org.lukecreator.aw;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
@@ -227,7 +229,20 @@ public class RobloxAPI {
             JsonObject uselessJson = JsonParser.parseString(response.body()).getAsJsonObject();
             JsonArray usefulJsonList = uselessJson.getAsJsonArray("data").getAsJsonArray();
             JsonObject usefulJson = usefulJsonList.get(0).getAsJsonObject();
-            return usefulJson.get("imageUrl").getAsString();
+            String resultImageUrl = usefulJson.get("imageUrl").getAsString();
+
+            // URL checks to make sure it can go in an embed
+            if (resultImageUrl.length() > MessageEmbed.URL_MAX_LENGTH) {
+                System.out.println("Warning: Roblox API returned a URL that was too long; not using it:");
+                System.out.println(resultImageUrl);
+                return null;
+            }
+            if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches()) {
+                System.out.println("Warning: Roblox API returned an invalid URL; not using it:");
+                System.out.println(resultImageUrl);
+                return null;
+            }
+            return resultImageUrl;
         } catch (Exception e) {
             return null;
         }
