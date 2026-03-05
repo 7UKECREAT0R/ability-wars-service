@@ -84,7 +84,6 @@ public abstract class AWTicket {
     public static Modal tryOpenNewTicket(AWTicket.Type ticketType, Guild currentGuild, UserSnowflake ticketOwner) throws IllegalArgumentException, SQLException {
         long guildId = currentGuild.getIdLong();
         if (ticketType.guildId != guildId) {
-            AWTicket.decrementNextAvailableTicketID();
             throw new IllegalArgumentException("This ticket type isn't available in this server.");
         }
 
@@ -97,7 +96,6 @@ public abstract class AWTicket {
             ticketsInSameCategory++;
         }
         if (ticketsInSameCategory >= ticketType.maxTicketsPerUser) {
-            AWTicket.decrementNextAvailableTicketID();
             String ticketsPlural = ticketsInSameCategory == 1 ? "ticket is" : "tickets are";
             throw new IllegalArgumentException("You have too many tickets open! Please wait until your previous " + ticketsPlural + " closed.");
         }
@@ -106,12 +104,10 @@ public abstract class AWTicket {
         final int maxTickets = 50;
         Category ticketCategory = currentGuild.getCategoryById(ticketType.channelCategoryId);
         if (ticketCategory == null) {
-            AWTicket.decrementNextAvailableTicketID();
             throw new IllegalArgumentException("So... basically... the category this ticket is supposed to go in doesn't exist. Please wait for the developers to fix this!");
         }
         int ticketsInCategory = ticketCategory.getTextChannels().size();
         if (ticketsInCategory >= maxTickets) {
-            AWTicket.decrementNextAvailableTicketID();
             throw new IllegalArgumentException("Tickets are currently full (`" + maxTickets + "` in queue). Please wait a bit before trying again!");
         }
 
@@ -710,7 +706,7 @@ public abstract class AWTicket {
                         channel.delete().queue(whenDone -> {
                             if (onSuccess != null)
                                 onSuccess.accept(jda);
-                        });
+                        }, whenFail -> { /* do nothing */ });
                     }
                 }
             }
