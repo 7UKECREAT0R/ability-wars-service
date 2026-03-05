@@ -24,6 +24,7 @@ import org.jspecify.annotations.NonNull;
 import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.data.tickets.*;
 import org.lukecreator.aw.discord.AbilityWarsBot;
+import org.lukecreator.aw.webserver.fulfillments.InfoFulfillment;
 
 import java.awt.*;
 import java.sql.PreparedStatement;
@@ -51,6 +52,15 @@ public abstract class AWTicket {
     public Long closedByDiscordId;
     public boolean isOpen;
     public String closeReason;
+    /**
+     * A temporary value which holds fresh information about the relevant user sent from Ability Wars.
+     * This is usually going to be valid after a ticket is opened, but null when a ticket is loaded/recalled afterward.
+     * <p>
+     * This is NOT resolved by any generic behavior of {@link AWTicket}, only its subclasses, so make sure to populate it
+     * in that subclass's implementation. Usually, this value is set in {@link AWTicket#loadFromModalResponse(ModalInteractionEvent, Consumer)}.
+     */
+    @Nullable
+    public InfoFulfillment temporaryInfoFulfillment;
     protected JsonObject inputQuestionsRaw;
     private long discordChannelId;
 
@@ -717,6 +727,7 @@ public abstract class AWTicket {
         this.isOpen = false;
         this.closeReason = closeReason;
         this.closedByDiscordId = closedByUser.getIdLong();
+        this.temporaryInfoFulfillment = null; // let the temporary fulfillment be garbage collected, if any.
         this.updateInDatabase();
 
         // remove from the ticket manager cache

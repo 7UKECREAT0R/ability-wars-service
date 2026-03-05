@@ -610,32 +610,6 @@ public class AWPlayerReportTicket extends AWTicket {
 
     @Override
     public void afterInitialMessageSent(TextChannel channel, Message message) {
-        if (this.accusedUser == null)
-            return;
-
-        final MessageEmbed initialEmbed = message.getEmbeds().get(0);
-        if (initialEmbed == null)
-            return; // something bad must have happened?
-
-        PendingRequest extraInfoRequest = new InfoRequest(PendingRequest.getNextRequestId(), this.accusedUser.userId())
-                .onFulfilled(_response -> {
-                    InfoFulfillment response = (InfoFulfillment) _response;
-                    AWBan[] bans = response.bans;
-                    EmbedBuilder extraInfoEmbed = new EmbedBuilder()
-                            .setTitle("Ability Wars Info")
-                            .setFooter("For user \"%s\"".formatted(this.accusedUser.username()))
-                            .setColor(Color.RED);
-                    if (bans != null && bans.length > 0) {
-                        extraInfoEmbed.setDescription("Bans on record:\n");
-                        BanCheckCommand.generateBanRecordDescription(extraInfoEmbed, bans, true, false);
-                    } else
-                        extraInfoEmbed.setDescription("No bans on record.");
-                    extraInfoEmbed.addField("Punches", String.valueOf(response.punches), true);
-                    if (response.gamepasses != null && response.gamepasses.length > 0)
-                        extraInfoEmbed.addField("Gamepasses", String.join(", ", response.gamepassNames()), true);
-                    message.editMessageEmbeds(initialEmbed, extraInfoEmbed.build()).queue();
-                });
-        PendingRequests.add(extraInfoRequest);
     }
 
     private void onReceivedEvidenceAttachment(MessageReceivedEvent event) {
@@ -837,8 +811,10 @@ public class AWPlayerReportTicket extends AWTicket {
         long reportedUserId = this.accusedUser.userId();
 
         PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), reportedUserId).onFulfilled(info -> {
+            this.temporaryInfoFulfillment = (InfoFulfillment) info;
+
             // if the user is currently banned, cancel and let the reporter know
-            if (((InfoFulfillment) info).isCurrentlyBanned()) {
+            if (this.temporaryInfoFulfillment.isCurrentlyBanned()) {
                 event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
                 onFinishedLoading.accept(false);
                 return;
@@ -945,12 +921,23 @@ public class AWPlayerReportTicket extends AWTicket {
 
         List<MessageEmbed> result = new ArrayList<>();
         result.add(eb.build());
-        result.add(new EmbedBuilder()
-                .setTitle("Collecting info...")
-                .setDescription("-# Sent a request to Ability Wars to gather more information about the user. If this message doesn't update in the next 5-10 seconds, use a command manually to look up their information instead.")
-                .setColor(Color.white)
-                .build()
-        );
+
+        if (this.temporaryInfoFulfillment != null) {
+            AWBan[] bans = this.temporaryInfoFulfillment.bans;
+            EmbedBuilder extraInfoEmbed = new EmbedBuilder()
+                    .setTitle("Ability Wars Info")
+                    .setFooter("For user \"%s\"".formatted(this.accusedUser.username()))
+                    .setColor(Color.RED);
+            if (bans != null && bans.length > 0) {
+                extraInfoEmbed.setDescription("Bans on record:\n");
+                BanCheckCommand.generateBanRecordDescription(extraInfoEmbed, bans, true, false);
+            } else
+                extraInfoEmbed.setDescription("No bans on record.");
+            extraInfoEmbed.addField("Punches", String.valueOf(this.temporaryInfoFulfillment.punches), true);
+            if (this.temporaryInfoFulfillment.gamepasses != null && this.temporaryInfoFulfillment.gamepasses.length > 0)
+                extraInfoEmbed.addField("Gamepasses", String.join(", ", this.temporaryInfoFulfillment.gamepassNames()), true);
+            result.add(extraInfoEmbed.build());
+        }
 
         return result;
     }
@@ -1088,7 +1075,7 @@ public class AWPlayerReportTicket extends AWTicket {
             return new EmbedBuilder()
                     .setColor(Color.orange)
                     .setTitle("Note about evidence!")
-                    .setDescription("Please don't delete/private the evidence you uploaded [here](%s)! If the rule-breaker tries to appeal their ban (this happens often), we'll have to refer back to the video. If the video is gone, we have no choice but to unban the rule-breaker.".formatted(this.evidenceURL))
+                    .setDescription("Please don't delete/hide the evidence you uploaded [here](%s)! If the rule-breaker tries to dispute their ban (this happens very often), we'll have to refer back to the video. If the video is gone, we have no choice but to unban the rule-breaker.".formatted(this.evidenceURL))
                     .setFooter("Thanks for understanding!!")
                     .build();
         }

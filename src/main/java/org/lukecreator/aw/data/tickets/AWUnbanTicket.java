@@ -43,7 +43,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -411,53 +410,6 @@ public abstract class AWUnbanTicket extends AWTicket {
 
     @Override
     public void afterInitialMessageSent(TextChannel channel, Message message) {
-        if (this.isForDiscord)
-            return;
-
-        final MessageEmbed initialEmbed = message.getEmbeds().get(0);
-        if (initialEmbed == null)
-            return;
-
-        if (this.robloxUserToUnban == null) {
-            message.editMessageEmbeds(initialEmbed,
-                    new EmbedBuilder()
-                            .setTitle("Failed to get info.")
-                            .setDescription("Input user was invalid, doesn't exist, or roblox is down right now.")
-                            .setColor(Color.RED)
-                            .build()
-            ).queueAfter(1, TimeUnit.SECONDS);
-            return;
-        }
-
-        PendingRequest banInfoRequest = new InfoRequest(PendingRequest.getNextRequestId(), this.robloxIdToUnban)
-                .onFulfilled(_fulfillment -> {
-                    InfoFulfillment fulfillment = (InfoFulfillment) _fulfillment;
-                    AWBan[] bansOnRecord = fulfillment.bans;
-                    EmbedBuilder extraInfoEmbed;
-
-                    if (bansOnRecord != null && bansOnRecord.length > 0) {
-                        extraInfoEmbed = new EmbedBuilder()
-                                .setTitle("Ban Information")
-                                .setFooter("For user \"%s\"".formatted(this.robloxUserToUnban.username()))
-                                .setColor(Color.RED);
-                        BanCheckCommand.generateBanRecordDescription(extraInfoEmbed, bansOnRecord, true, true);
-                        AWBan currentBan = fulfillment.bans[fulfillment.bans.length - 1];
-                        long started = currentBan.starts();
-                        long now = System.currentTimeMillis();
-                        LocalDate startedDateTime = Instant.ofEpochMilli(started).atZone(ZoneId.of("UTC")).toLocalDate();
-                        String timeAgoDescriptorString = BotCommand.getDurationDescriptor(started, now);
-                        String startedDate = BanCheckCommand.formatter.format(startedDateTime) + " (" + timeAgoDescriptorString + ")";
-                        extraInfoEmbed.addField("Banned", startedDate, true);
-                    } else {
-                        extraInfoEmbed = new EmbedBuilder()
-                                .setTitle("No Bans on Record")
-                                .setDescription("This user is not currently banned from Ability Wars, and has no bans on record. If you believe this is an error, please escalate to an administrator.")
-                                .setFooter("For user \"%s\"".formatted(this.robloxUserToUnban.username()))
-                                .setColor(Color.GREEN);
-                    }
-                    message.editMessageEmbeds(initialEmbed, extraInfoEmbed.build()).queue();
-                });
-        PendingRequests.add(banInfoRequest);
     }
 
     @Override
@@ -576,14 +528,38 @@ public abstract class AWUnbanTicket extends AWTicket {
         if (this.isForDiscord) {
             return List.of(eb.build());
         } else {
-            return List.of(
-                    eb.build(),
-                    new EmbedBuilder()
-                            .setTitle("Collecting info...")
-                            .setDescription("-# Sent a request to Ability Wars to gather more information about the user in-game. If this message doesn't update in the next 5-10 seconds, use a command manually to look up their ban information instead.")
-                            .setColor(Color.white)
-                            .build()
-            );
+            List<MessageEmbed> embeds = new ArrayList<>();
+            embeds.add(eb.build());
+
+            String toUnbanUsername = this.robloxUserToUnban == null ? this.playerToUnban == null ? "Unknown" : this.playerToUnban.username() : this.robloxUserToUnban.username();
+            if (this.temporaryInfoFulfillment != null) {
+                AWBan[] bansOnRecord = this.temporaryInfoFulfillment.bans;
+                EmbedBuilder extraInfoEmbed;
+
+                if (bansOnRecord != null && bansOnRecord.length > 0) {
+                    extraInfoEmbed = new EmbedBuilder()
+                            .setTitle("Ban Information")
+                            .setFooter("For user \"%s\"".formatted(toUnbanUsername))
+                            .setColor(Color.RED);
+                    BanCheckCommand.generateBanRecordDescription(extraInfoEmbed, bansOnRecord, true, true);
+                    AWBan currentBan = this.temporaryInfoFulfillment.bans[this.temporaryInfoFulfillment.bans.length - 1];
+                    long started = currentBan.starts();
+                    long now = System.currentTimeMillis();
+                    LocalDate startedDateTime = Instant.ofEpochMilli(started).atZone(ZoneId.of("UTC")).toLocalDate();
+                    String timeAgoDescriptorString = BotCommand.getDurationDescriptor(started, now);
+                    String startedDate = BanCheckCommand.formatter.format(startedDateTime) + " (" + timeAgoDescriptorString + ")";
+                    extraInfoEmbed.addField("Banned", startedDate, true);
+                } else {
+                    extraInfoEmbed = new EmbedBuilder()
+                            .setTitle("No Bans on Record")
+                            .setDescription("This user is not currently banned from Ability Wars, and has no bans on record. If you believe this is an error, please escalate to an administrator.")
+                            .setFooter("For user \"%s\"".formatted(toUnbanUsername))
+                            .setColor(Color.GREEN);
+                }
+                embeds.add(extraInfoEmbed.build());
+            }
+
+            return embeds;
         }
     }
 
@@ -937,7 +913,8 @@ public abstract class AWUnbanTicket extends AWTicket {
 
             // make sure the user is actually banned.
             PendingRequest infoRequest = new InfoRequest(PendingRequest.getNextRequestId(), this.robloxIdToUnban).onFulfilled(info -> {
-                if (!((InfoFulfillment) info).isCurrentlyBanned()) {
+                this.temporaryInfoFulfillment = (InfoFulfillment) info;
+                if (!this.temporaryInfoFulfillment.isCurrentlyBanned()) {
                     // we didn't ban this user. so either they have the wrong account, or they're IP banned on another account
                     event.getHook().editOriginal("The Roblox user [%s](%s) is not currently banned from the game. This ticket cannot be opened.".formatted(this.robloxUserToUnban.username(), this.robloxUserToUnban.getProfileURL()))
                             .setComponents(ActionRow.of(Button.secondary(AbilityWarsBot.BUTTON_ID_EXPLAIN_IP_BAN, "I still can't join")))
