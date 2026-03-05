@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.*;
@@ -773,8 +774,16 @@ public class AWPlayerReportTicket extends AWTicket {
             return;
         }
 
+
+        List<String> selectedRulesBroken = ruleMapping.getAsStringList();
+        if (selectedRulesBroken.isEmpty()) {
+            event.getHook().editOriginal("You must select which rule the player broke in order to report them!").queue();
+            onFinishedLoading.accept(false);
+            return;
+        }
+
         this.accusedUsername = usernameMapping.getAsString();
-        this.ruleBroken = ruleMapping.getAsString();
+        this.ruleBroken = selectedRulesBroken.get(0);
         this.evidenceURL = evidenceMapping.getAsString();
         this.evidenceDetails = evidenceDetailsMapping.getAsString();
 
@@ -856,11 +865,13 @@ public class AWPlayerReportTicket extends AWTicket {
                 .setRequiredRange(2, 20)
                 .setPlaceholder("The username of the rule-breaker.")
                 .build());
-        Label ruleBrokenInput = Label.of("Rule Broken", TextInput
-                .create("rule", TextInputStyle.SHORT)
-                .setRequired(true)
-                .setRequiredRange(-1, 128)
-                .setPlaceholder("exploiting")
+        Label ruleBrokenInput = Label.of("Rule Broken", StringSelectMenu
+                .create("rule")
+                .addOption("Exploiting/Cheats", "exploiting")
+                .addOption("Bug Abuse", "bug abuse")
+                .addOption("Tab Glitching", "tab glitching")
+                .addOption("Inappropriate Engineer Build", "inappropriate engineer build")
+                .setRequiredRange(1, 1)
                 .build());
         Label evidenceInput = Label.of("Evidence", TextInput
                 .create("evidence", TextInputStyle.SHORT)
