@@ -462,25 +462,27 @@ public class TicketManageCommand extends BotCommand {
             return;
 
         // non-ticket required commands
-        if (subcommandName.equals("cleanup")) {
-            this.executeCleanup(e);
-            return;
-        }
-        if (subcommandName.equals("history")) {
-            this.executeHistory(e);
-            return;
-        }
-        if (subcommandName.equals("history-by-closer")) {
-            this.executeHistoryByCloser(e);
-            return;
-        }
-        if (subcommandName.equals("history-by-recent")) {
-            this.executeHistoryByRecent(e);
-            return;
-        }
-        if (subcommandName.equals("recall")) {
-            this.executeRecall(e);
-            return;
+        switch (subcommandName) {
+            case "cleanup" -> {
+                this.executeCleanup(e);
+                return;
+            }
+            case "history" -> {
+                this.executeHistory(e);
+                return;
+            }
+            case "history-by-closer" -> {
+                this.executeHistoryByCloser(e);
+                return;
+            }
+            case "history-by-recent" -> {
+                this.executeHistoryByRecent(e);
+                return;
+            }
+            case "recall" -> {
+                this.executeRecall(e);
+                return;
+            }
         }
 
         if (e.getChannelType() != ChannelType.TEXT) {
