@@ -131,7 +131,7 @@ public class TicketManageCommand extends BotCommand {
                     : AWTicket.loadByOwner(user, MessageEmbed.MAX_FIELD_AMOUNT);
             int totalTickets = typeFilter != null
                     ? AWTicket.countByOwner(user, typeFilter)
-                    : AWTicket.countByCloser(user);
+                    : AWTicket.countByOwner(user);
 
             EmbedBuilder eb = new EmbedBuilder()
                     .setAuthor(user.getName(), null, user.getEffectiveAvatarUrl())
