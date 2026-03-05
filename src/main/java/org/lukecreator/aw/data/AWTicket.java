@@ -10,7 +10,6 @@ import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -786,6 +785,7 @@ public abstract class AWTicket {
      *
      * @throws SQLException If a database access error occurs while executing the SQL statements.
      */
+    @SuppressWarnings("unused")
     public void removeFromDatabase() throws SQLException {
         var statement = AWDatabase.connection.prepareStatement("DELETE FROM tickets WHERE ticket_id = ?");
         statement.setLong(1, this.id);
@@ -810,22 +810,10 @@ public abstract class AWTicket {
         BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1, 2,
                 "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS);
 
-        public static final Type[] MAIN_SERVER_TYPES = Arrays
-                .stream(Type.values())
-                .filter(Type::isMainServer)
-                .toArray(Type[]::new);
-        public static final Type[] APPEALS_SERVER_TYPES = Arrays
-                .stream(Type.values())
-                .filter(Type::isAppealsServer)
-                .toArray(Type[]::new);
         public static final Command.Choice[] AS_COMMAND_CHOICES = Arrays
                 .stream(Type.values())
                 .map(type -> new Command.Choice(type.identifier, type.identifier))
                 .toArray(Command.Choice[]::new);
-        public static final long[] TICKET_CATEGORY_IDS = Arrays
-                .stream(Type.values())
-                .mapToLong(t -> t.channelCategoryId)
-                .toArray();
         public final String identifier;
         public final String title;
         public final int id;
@@ -863,24 +851,6 @@ public abstract class AWTicket {
             this.channelCategoryId = channelCategoryId;
         }
 
-        /**
-         * Checks if the given TextChannel's parent category is part of the valid ticket categories.
-         *
-         * @param channel The TextChannel to check.
-         * @return true if the parent category of the channel matches any of the defined ticket category IDs,
-         * false otherwise.
-         */
-        public static boolean isInTicketCategory(ICategorizableChannel channel) {
-            Category parent = channel.getParentCategory();
-            if (parent == null)
-                return false;
-            for (long id : TICKET_CATEGORY_IDS) {
-                if (parent.getIdLong() == id)
-                    return true;
-            }
-            return false;
-        }
-
         public static Type fromId(int id) {
             for (Type type : Type.values()) {
                 if (type.id == id)
@@ -900,6 +870,7 @@ public abstract class AWTicket {
         /**
          * Returns if this Ticket type can be used in the main Discord server.
          */
+        @SuppressWarnings("unused")
         public boolean isMainServer() {
             return this.id >= 0xA0 && this.id <= 0xAF;
         }
