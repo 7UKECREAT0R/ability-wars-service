@@ -47,19 +47,27 @@ public class AWBans {
      */
     public static int countBansByStaff(long staffRobloxId, long weekStart, long weekEnd) throws SQLException {
         final String query = """
-                SELECT COUNT(DISTINCT ban.user_id)
+                SELECT COUNT(*)
                 FROM bans ban
                 LEFT JOIN unbans unban ON ban.user_id = unban.user_id
-                                  AND unban.date > ban.starts
+                                       AND unban.date > ban.starts
                 WHERE ban.responsible_moderator = ?
-                  AND ban.starts >= ? AND ban.starts <= ?
-                  AND unban.user_id IS NULL
+                AND ban.starts >= ? AND ban.starts <= ?
+                AND unban.user_id IS NULL
+                AND ban.starts = (
+                    SELECT MAX(b2.starts)
+                    FROM bans b2
+                    WHERE b2.user_id = ban.user_id
+                      AND b2.starts >= ? AND b2.starts <= ?
+                )
                 """;
 
         try (PreparedStatement statement = AWDatabase.connection.prepareStatement(query)) {
             statement.setLong(1, staffRobloxId);
             statement.setLong(2, weekStart);
             statement.setLong(3, weekEnd);
+            statement.setLong(4, weekStart);
+            statement.setLong(5, weekEnd);
 
             try (ResultSet result = statement.executeQuery()) {
                 if (result.next()) {
@@ -68,7 +76,6 @@ public class AWBans {
                 return 0;
             }
         }
-
     }
 
     /**
