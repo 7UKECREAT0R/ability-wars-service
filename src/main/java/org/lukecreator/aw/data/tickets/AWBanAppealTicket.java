@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
 import org.jetbrains.annotations.Nullable;
+import org.lukecreator.aw.data.AWBan;
 
 import java.sql.SQLException;
 import java.util.function.Consumer;
@@ -109,6 +110,23 @@ public class AWBanAppealTicket extends AWUnbanTicket {
             if (!superResult) {
                 onFinishedLoading.accept(false);
                 return;
+            }
+            if (this.temporaryInfoFulfillment == null) {
+                onFinishedLoading.accept(false); // shouldn't happen, but if it does, the message has already been edited.
+                return;
+            }
+
+            // reject appeals if it hasn't been at least 4 months
+            final long FOUR_MONTHS_IN_MS = 4L * 30L * 24L * 60L * 60L * 1000L;
+            AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
+            if (currentBan != null) {
+                long now = System.currentTimeMillis();
+                long diff = now - currentBan.starts();
+                if (diff < FOUR_MONTHS_IN_MS) {
+                    event.getHook().editOriginal("You can only appeal a ban after six months of being banned. Please read <#" + INFO_CHANNEL_ID + ">.").queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
             }
 
             // the super method already called `deferReply` with `ephemeral` true

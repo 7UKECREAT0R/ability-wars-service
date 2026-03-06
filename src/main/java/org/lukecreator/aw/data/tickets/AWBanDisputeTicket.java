@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
+import org.lukecreator.aw.data.AWBan;
 
 import java.awt.*;
 import java.sql.SQLException;
@@ -123,6 +124,18 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
     public void loadFromModalResponse(ModalInteractionEvent event, Consumer<Boolean> onFinishedLoading) throws SQLException {
         super.loadFromModalResponse(event, superResult -> {
             if (!superResult) {
+                onFinishedLoading.accept(false);
+                return;
+            }
+            if (this.temporaryInfoFulfillment == null) {
+                onFinishedLoading.accept(false); // shouldn't happen, but if it does, the message has already been edited.
+                return;
+            }
+
+            AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
+            String currentBanReason = currentBan == null ? null : currentBan.reason();
+            if (isReasonBecauseOfAnticheatBan(currentBanReason)) {
+                event.getHook().editOriginal("This ban cannot be disputed; the decision is final.").queue();
                 onFinishedLoading.accept(false);
                 return;
             }

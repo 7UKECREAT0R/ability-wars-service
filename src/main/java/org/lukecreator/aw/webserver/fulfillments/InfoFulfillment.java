@@ -3,6 +3,7 @@ package org.lukecreator.aw.webserver.fulfillments;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.AWBan;
@@ -146,9 +147,29 @@ public class InfoFulfillment extends Fulfillment {
      * @return {@code true} if the user is currently banned; {@code false} otherwise.
      */
     public boolean isCurrentlyBanned() {
-        if (this.bans == null || this.bans.length == 0)
+        AWBan latestBan = this.getMostRecentBan();
+        if (latestBan == null)
             return false;
-        AWBan lastBan = this.bans[this.bans.length - 1];
-        return lastBan.ends() == null || lastBan.ends() > System.currentTimeMillis();
+        return latestBan.ends() == null || latestBan.ends() > System.currentTimeMillis();
+    }
+
+    /**
+     * Returns the latest ban for the fulfilled user.
+     *
+     * @return The latest ban for the fulfilled user, or {@code null} if the user is not banned.
+     */
+    @Nullable
+    public AWBan getMostRecentBan() {
+        if (this.bans == null || this.bans.length == 0)
+            return null;
+        long mostRecentBanTime = 0L;
+        AWBan mostRecentBan = null;
+        for (AWBan ban : this.bans) {
+            if (ban.starts() > mostRecentBanTime) {
+                mostRecentBanTime = ban.starts();
+                mostRecentBan = ban;
+            }
+        }
+        return mostRecentBan;
     }
 }

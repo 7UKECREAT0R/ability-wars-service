@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.lukecreator.aw.BloxlinkAPI;
 import org.lukecreator.aw.RobloxAPI;
-import org.lukecreator.aw.data.AWBan;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
 import org.lukecreator.aw.discord.BotCommand;
 import org.lukecreator.aw.webserver.PendingRequest;
@@ -17,7 +16,6 @@ import org.lukecreator.aw.webserver.requests.InfoRequest;
 
 import java.awt.*;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 public class StatsCommand extends BotCommand {
     public StatsCommand() {
@@ -72,20 +70,7 @@ public class StatsCommand extends BotCommand {
         PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), robloxId)
                 .onFulfilled((fulfillment -> {
                     InfoFulfillment info = (InfoFulfillment) fulfillment;
-                    boolean isBanned = false;
-                    if (info.bans != null && info.bans.length > 0) {
-                        // sort bans by "started" descending
-                        Arrays.sort(info.bans, (a, b) -> Long.compare(b.starts(), a.starts()));
-                        // get most recent ban
-                        AWBan mostRecentBan = info.bans[0];
-                        if (mostRecentBan.ends() == null) {
-                            isBanned = true;
-                        } else {
-                            long now = System.currentTimeMillis();
-                            long mostRecentBanEnds = mostRecentBan.ends();
-                            isBanned = mostRecentBanEnds > now;
-                        }
-                    }
+                    boolean isBanned = info.isCurrentlyBanned();
                     e.getInteraction().getHook().editOriginalEmbeds(
                             new EmbedBuilder()
                                     .setTitle("Stats for " + user.username(), user.getProfileURL())

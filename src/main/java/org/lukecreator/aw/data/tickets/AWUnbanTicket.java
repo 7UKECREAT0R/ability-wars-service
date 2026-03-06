@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 import org.lukecreator.aw.RobloxAPI;
 import org.lukecreator.aw.data.*;
 import org.lukecreator.aw.discord.AbilityWarsBot;
@@ -53,8 +54,13 @@ public abstract class AWUnbanTicket extends AWTicket {
     public final static long TRANSCRIPTS_CHANNEL_ID = 978532026565132318L;
     protected final static String EMOJI_DISCORD = Emoji.fromCustom("discord", 1349347174701334528L, false).getAsMention();
     protected final static String EMOJI_IN_GAME = Emoji.fromCustom("ingame", 1349347143017693226L, false).getAsMention();
-    protected final static String JSON_IS_FOR_DISCORD = "is_for_discord";
-    protected final static String JSON_USER_ID = "user_id";
+    /**
+     * An array of predefined warning messages intended to discourage users from excessively pinging staff members.
+     * Every time the user continues to ping staff members, they will receive the next message down the list. After
+     * the last message has been sent, the next ping will result in the ticket being closed prematurely.
+     * <p>
+     * The length of this array directly controls the number of warning messages given before the ticket is closed.
+     */
     private static final String[] PING_WARNING_MESSAGES = {
             "%s, please don't ping staff.",
             "%s, all of the staff are busy, please be patient and stop pinging them!",
@@ -62,6 +68,15 @@ public abstract class AWUnbanTicket extends AWTicket {
             "%s, stop pinging staff, seriously. All of us are volunteers, and we will do your ticket once we have time available. We're not paid to do this. Please stop pinging us.",
             "Yoohoo! %s! I'm not trying to sound rude, but you're really bad at this waiting thing, aren't you? Please stop pinging staff, it's a disturbance.",
             "Okay, %s, if you ping staff again, this ticket will be closed and you'll be knocked back to the bottom of the queue. Please, for the love of all that is holy, be patient."
+    };
+    /**
+     * A list of "reason" entries which the anticheat uses when auto banning cheaters.
+     * Yes, there is only one right now; yes, it is for ALL anti-cheat bans, including reach.
+     * <p>
+     * I don't ask questions here, I just do what I'm told
+     */
+    private static final String[] ANTICHEAT_REASONS = {
+            "AUTO-FARM DETECTED, YOU HAVE BEEN BANNED!"
     };
 
     /**
@@ -118,11 +133,14 @@ public abstract class AWUnbanTicket extends AWTicket {
 
     /**
      * Returns if the reason provided is likely the Roblox template for when an account is IP banned.
+     * This usually accepts user-input to see if they're *talking* about an IP ban, not an actual ban reason.
      *
      * @param reason The reason provided by the user.
      * @return {@code true} if the reason is overwhelmingly likely the IP banned template; {@code false} otherwise.
      */
-    public static boolean isReasonBecauseOfIPBan(String reason) {
+    public static boolean isReasonBecauseOfIPBan(@Nullable String reason) {
+        if (reason == null || reason.isBlank())
+            return false;
         reason = reason.toUpperCase();
         int score = 0;
 
@@ -142,6 +160,26 @@ public abstract class AWUnbanTicket extends AWTicket {
         if (reason.contains("600"))
             score++;
         return score >= 2;
+    }
+
+    /**
+     * Returns if the reason is provided is one of the hard-coded ban reasons from the anticheat.
+     *
+     * @param reason The reason attached to the ban.
+     * @return {@code true} if the reason is overwhelmingly likely to be an anticheat ban; {@code false} otherwise.
+     */
+    public static boolean isReasonBecauseOfAnticheatBan(@Nullable String reason) {
+        if (reason == null)
+            return false;
+        reason = reason.trim();
+        if (reason.isEmpty())
+            return false;
+        for (String ANTICHEAT_REASON : ANTICHEAT_REASONS) {
+            if (reason.contains(ANTICHEAT_REASON)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static MessageEmbed getResponseForIPBan() {
@@ -181,6 +219,33 @@ public abstract class AWUnbanTicket extends AWTicket {
             throw new RuntimeException("Could not find the #transcripts channel.");
 
         return channel.sendMessage(message).setAllowedMentions(Collections.emptySet());
+    }
+
+    /**
+     * Retrieves a list of members mentioned in a message, excluding any reply pings.
+     * Reply pings, which occur when a user replies to a specific message and the original
+     * message's author is automatically mentioned, are not included in the resulting list.
+     *
+     * @param mentions The Mentions object containing the details of all mentioned entities in the message.
+     * @param message  The Message object for which mentioned members should be retrieved.
+     *                 This is used to identify and exclude reply pings if applicable.
+     * @return A list of {@link Member} objects representing the mentioned members in the given message,
+     * excluding any members mentioned due to reply pings.
+     */
+    private static @NonNull List<Member> getMentionedMembersWithoutReplyPings(Mentions mentions, Message message) {
+        List<Member> mentionedMembers = mentions.getMembers();
+
+        // don't count reply pings. we actually care about those pings
+        // and they just cause more issues than not.
+        Message referencedMessage = message.getReferencedMessage();
+        if (message.getType() == MessageType.INLINE_REPLY && referencedMessage != null) {
+            long referencedUser = referencedMessage.getAuthor().getIdLong();
+            for (int i = mentionedMembers.size() - 1; i >= 0; i--) {
+                if (mentionedMembers.get(i).getIdLong() == referencedUser)
+                    mentionedMembers.remove(i);
+            }
+        }
+        return mentionedMembers;
     }
 
     public boolean isForDiscord() {
@@ -381,33 +446,6 @@ public abstract class AWUnbanTicket extends AWTicket {
         this.collectRelatedTickets(false);
     }
 
-    /**
-     * Parent implementation of {@link #getInputQuestionsJSON()}.
-     *
-     * @return A new JSON object to add your input questions properties to. User information is already attached.
-     */
-    protected JsonObject getInputQuestionsStartJSON() {
-        JsonObject json = new JsonObject();
-        json.addProperty(JSON_IS_FOR_DISCORD, this.isForDiscord);
-        json.addProperty(JSON_USER_ID, this.isForDiscord ? this.discordIdToUnban : this.robloxIdToUnban);
-        return json;
-    }
-
-    /**
-     * Parent implementation of {@link #processInputQuestionsJSON(JsonObject)}.
-     *
-     * @param json The JSON object to parse from.
-     */
-    protected void processUserFromJSON(JsonObject json) {
-        this.isForDiscord = json.get(JSON_IS_FOR_DISCORD).getAsBoolean();
-        long id = json.get(JSON_USER_ID).getAsLong();
-
-        if (this.isForDiscord)
-            this.discordIdToUnban = id;
-        else
-            this.robloxIdToUnban = id;
-    }
-
     @Override
     public void afterInitialMessageSent(TextChannel channel, Message message) {
     }
@@ -424,7 +462,7 @@ public abstract class AWUnbanTicket extends AWTicket {
 
             // impatience
             List<Role> mentionedRoles = mentions.getRoles();
-            List<Member> mentionedMembers = mentions.getMembers();
+            final List<Member> mentionedMembers = getMentionedMembersWithoutReplyPings(mentions, message);
 
             boolean pingsStaff = !mentionedRoles.isEmpty() || mentionedMembers
                     .stream()
@@ -542,7 +580,8 @@ public abstract class AWUnbanTicket extends AWTicket {
                             .setFooter("For user \"%s\"".formatted(toUnbanUsername))
                             .setColor(Color.RED);
                     BanCheckCommand.generateBanRecordDescription(extraInfoEmbed, bansOnRecord, true, true);
-                    AWBan currentBan = this.temporaryInfoFulfillment.bans[this.temporaryInfoFulfillment.bans.length - 1];
+                    AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
+                    assert currentBan != null; // guaranteed by the check above
                     long started = currentBan.starts();
                     long now = System.currentTimeMillis();
                     LocalDate startedDateTime = Instant.ofEpochMilli(started).atZone(ZoneId.of("UTC")).toLocalDate();
@@ -922,6 +961,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                     onFinishedLoading.accept(false);
                     return;
                 }
+
                 // check for any other tickets that are appealing for the same account
                 this.collectRelatedTickets(true);
                 onFinishedLoading.accept(true);
