@@ -706,7 +706,7 @@ public abstract class AWTicket {
      * @param additionalUserEmbed If not null, an additional embed to append to the end of the message to the ticket owner.
      * @throws SQLException If something went wrong in the database.
      */
-    public void close(JDA jda, User closedByUser, String closeReason, @Nullable Consumer<JDA> onSuccess, @Nullable MessageEmbed additionalUserEmbed) throws SQLException {
+    public void close(JDA jda, User closedByUser, @Nullable String closeReason, @Nullable Consumer<JDA> onSuccess, @Nullable MessageEmbed additionalUserEmbed) throws SQLException {
         if (!this.isOpen) {
             // check and make sure the channel's gone
             Guild guild = jda.getGuildById(this.type().guildId);

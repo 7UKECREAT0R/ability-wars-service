@@ -301,20 +301,11 @@ public abstract class AWUnbanTicket extends AWTicket {
                 return;
             }
 
-            RobloxAPI.User tempUser;
-            try {
-                long id = Long.parseLong(value);
-                tempUser = RobloxAPI.getUserById(id);
-                if (tempUser == null) {
-                    event.reply("Couldn't find a Roblox user with the ID `%d`".formatted(id)).setEphemeral(false).queue();
-                    return;
-                }
-            } catch (NumberFormatException ignored) {
-                tempUser = RobloxAPI.getUserByCurrentUsername(value);
-                if (tempUser == null) {
-                    event.reply("Couldn't find a Roblox user with the name `%s`".formatted(value.replace("`", ""))).setEphemeral(false).queue();
-                    return;
-                }
+            RobloxAPI.User tempUser = RobloxAPI.getUserByInput(value, false);
+
+            if (tempUser == null) {
+                event.reply("Couldn't find a Roblox user from the input \"" + value + "\"").setEphemeral(true).queue();
+                return;
             }
 
             this.robloxIdToUnban = tempUser.userId();
@@ -614,10 +605,11 @@ public abstract class AWUnbanTicket extends AWTicket {
     public TicketAction[] getAvailableActions() {
         List<TicketAction> actions = new ArrayList<>();
         actions.add(new TicketAction("close", "Close", ButtonStyle.PRIMARY, this.id));
-        actions.add(new TicketAction("closefortime", "Close (keep waiting)", ButtonStyle.PRIMARY, this.id));
 
-        if (this.isAppeal())
+        if (this.isAppeal()) {
+            actions.add(new TicketAction("closefortime", "Close (keep waiting)", ButtonStyle.PRIMARY, this.id));
             actions.add(new TicketAction("closeloweffort", "Close (bad appeal)", ButtonStyle.PRIMARY, this.id));
+        }
 
         actions.add(new TicketAction("blacklistlying", "Blacklist (lying)", ButtonStyle.DANGER, this.id));
 

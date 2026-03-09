@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE labels SYSTEM "https://resources.jetbrains.com/writerside/1.0/labels-list.dtd">
+<labels xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://resources.jetbrains.com/writerside/1.0/labels.xsd">
+    <primary-label id="bot-command" short-name="CMD" name="Bot Command" color="marine">
+        This is a command that can be run inside any Ability-Warden enabled Discord server using a slash command.
+    </primary-label>
+    <primary-label id="ticket-type" name="Ticket Type" short-name="TT" color="strawberry">
+        This is a type of ticket that users can open to make a request for staff.
+    </primary-label>
+    <secondary-label id="staff-only-command" name="Staff-Only" color="blue">
+        This command is restricted to staff only.
+    </secondary-label>
+</labels>

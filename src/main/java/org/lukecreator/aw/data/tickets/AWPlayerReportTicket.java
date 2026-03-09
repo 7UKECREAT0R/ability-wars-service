@@ -181,21 +181,11 @@ public class AWPlayerReportTicket extends AWTicket {
             return;
         }
 
-        RobloxAPI.User tempUser;
+        RobloxAPI.User tempUser = RobloxAPI.getUserByInput(username, false);
 
-        try {
-            long id = Long.parseLong(username);
-            tempUser = RobloxAPI.getUserById(id);
-            if (tempUser == null) {
-                event.reply("Couldn't find a Roblox user with the ID `%d`".formatted(id)).setEphemeral(false).queue();
-                return;
-            }
-        } catch (NumberFormatException ignored) {
-            tempUser = RobloxAPI.getUserByCurrentUsername(username);
-            if (tempUser == null) {
-                event.reply("Couldn't find a Roblox user with the name `%s`".formatted(username.replace("`", ""))).setEphemeral(false).queue();
-                return;
-            }
+        if (tempUser == null) {
+            event.reply("Couldn't find a Roblox user from the input \"" + username + "\"").setEphemeral(true).queue();
+            return;
         }
 
         AWEvidence evidence = AWEvidence.loadFromDatabase(this.evidenceId);

@@ -7,4 +7,34 @@
                   start-page="Ability-Wars-Documentation.md">
 
     <toc-element topic="Ability-Wars-Documentation.md"/>
+    <toc-element topic="Ticket-Types.md">
+        <toc-element topic="Content-Creator-Application.md"/>
+        <toc-element topic="Ban-Appeal.md"/>
+        <toc-element topic="Ban-Dispute.md"/>
+        <toc-element topic="Blacklist-Appeal.md"/>
+        <toc-element topic="Data-Restore.md"/>
+        <toc-element topic="Player-Report.md"/>
+    </toc-element>
+    <toc-element topic="Commands.md">
+        <toc-element topic="Ban-Player.md"/>
+        <toc-element topic="Ban-Player-Temporarily.md"/>
+        <toc-element topic="Blacklist-User.md"/>
+        <toc-element topic="Blacklist-Remove.md"/>
+        <toc-element topic="Create-Ticket-Button.md"/>
+        <toc-element topic="Get-Ban-Status.md"/>
+        <toc-element topic="Get-Blacklist-Info.md"/>
+        <toc-element topic="Get-Discord-Ban-Status.md"/>
+        <toc-element topic="Get-Stats.md"/>
+        <toc-element topic="Manage-Ticket.md"/>
+        <toc-element topic="Mass-Ban.md"/>
+        <toc-element topic="Open-Ticket.md"/>
+        <toc-element topic="Register-Discord-Roblox-Link.md"/>
+        <toc-element topic="Roblox-Search.md"/>
+        <toc-element topic="Set-Punches.md"/>
+        <toc-element topic="Ticket-Count-all.md"/>
+        <toc-element topic="Ticket-Count.md"/>
+        <toc-element topic="Unban-Player.md"/>
+    </toc-element>
+    <toc-element topic="Parameter-Types.md"/>
+    <toc-element topic="Staff-Links.md"/>
 </instance-profile>
