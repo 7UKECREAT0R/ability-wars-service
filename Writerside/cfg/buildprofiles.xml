@@ -7,7 +7,17 @@
     <build-profile instance="awd">
         <variables>
             <noindex-content>true</noindex-content>
+            <primary-color>ruby</primary-color>
+            <color-preset>contrast</color-preset>
+            <custom-favicons>favicon.png</custom-favicons>
+            <header-logo>logo.png</header-logo>
         </variables>
+        <footer>
+            <copyright>2026 lukecreator, Open Source under MiT license</copyright>
+            <social type="github" href="https://github.com/7UKECREAT0R/ability-wars-service"></social>
+            <social type="discord" href="https://discord.gg/FvkfBqZH4p"></social>
+            <link href="https://lukecreator.dev">Developer's Website</link>
+        </footer>
     </build-profile>
 
 </buildprofiles>

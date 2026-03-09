@@ -100,15 +100,13 @@ These are the properties that can be set on these tickets with [`/ticket modify`
 : Adds a link to an extra piece of evidence to the ticket. This is useful for cases where the user has more evidence
 and the bot only usually supports one link.
 : **NOTE:** An easier way to do this is (and with support for Discord uploads) is to right-click the message with the
-additional
-evidence, going under "Apps" → "Ability Warden" → "Add as Evidence."
+additional evidence and finding <ui-path>Apps | Ability Warden | Add as Evidence</ui-path>
 
 `change-main-evidence`
 : Changes the link to the main evidence of the ticket. After doing this, you will be prompted if you want to
 delete/unregister the previous evidence as well.
 : **NOTE:** An easier way to do this is (and with support for Discord uploads) is to right-click the message with the
-additional
-evidence, going under "Apps" → "Ability Warden" → "Set as Main Evidence."
+new evidence and finding <ui-path>Apps | Ability Warden | Set as Main Evidence</ui-path>
 
 `rule-broken`
 : Changes the "rule broken" to a new value. This is useful for edge cases where the user has found something out of the

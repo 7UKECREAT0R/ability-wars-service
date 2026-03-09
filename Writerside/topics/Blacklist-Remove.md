@@ -8,8 +8,8 @@ Blacklists can either be applied on a per-roblox-user basis, or on a per-discord
 
 ### Usages
 
-- `/appeal-blacklist-remove discord <user: Discord User>`
-- `/appeal-blacklist-remove roblox <user: Player>`
+- [`/appeal-blacklist-remove discord <user: Discord User>`](#subcommand-discord)
+- [`/appeal-blacklist-remove roblox <user: Player>`](#subcommand-roblox)
 
 ## Subcommand: `discord` {collapsible="true" default-state="collapsed"}
 

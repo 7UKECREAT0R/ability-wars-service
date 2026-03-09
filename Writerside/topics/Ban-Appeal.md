@@ -10,6 +10,13 @@ Appeals can be either for in-game bans, or Discord server bans. The tickets will
 
 The name format is `appeal-######`
 
+## Handling IP Bans
+
+With Roblox's more recent implementation of IP bans, we tend to get a lot of appeals for them. While we technically
+can override the ban and unban the user, our policy is to not do so. If a user is unable to play but is not banned *by
+us*, they will be unable to open an appeal ticket at all. The rejection message has a button attached which will tell
+them they're IP banned and how to get it resolved (_get all alternate accounts unbanned_).
+
 ## Questions
 
 Where are you banned from?

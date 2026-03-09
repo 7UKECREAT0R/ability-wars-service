@@ -8,7 +8,7 @@ If the ban was issued by the anti-cheat, a dispute cannot be opened and the deci
 
 The name format is `dispute-######`
 
-### The Evidence Agreement
+## The Evidence Agreement
 
 When a dispute is opened, a clickable message will be sent in the channel telling the user that we have video evidence
 of the incident (it doesn't check, but 99% of the time this is correct). They will be asked if they give consent for us
@@ -19,6 +19,13 @@ to review the video. If they click the deny button, they will be asked to explai
 > catch as many out as possible. It's foul play, yeah, but it works.
 
 {style="warning"}
+
+## Handling IP Bans
+
+With Roblox's more recent implementation of IP bans, we tend to get a lot of disputes for them. While we technically
+can override the ban and unban the user, our policy is to not do so. If a user is unable to play but is not banned *by
+us*, they will be unable to open a dispute ticket at all. The rejection message has a button attached which will tell
+them they're IP banned and how to get it resolved (_get all alternate accounts unbanned_).
 
 ## Questions
 
@@ -82,8 +89,8 @@ basically the "Accept" button.**
 
 #### Blacklist (shared account)
 
-Closes the ticket and blacklists the user from creating future appeals. The reason for the blacklist will be for sharing
-their account with another person, and they'll be sent a private message with a generic unrelated reason.
+Closes the ticket and blacklists the user from creating future disputes. The reason for the blacklist will be for
+sharing their account with another person, and they'll be sent a private message with a generic unrelated reason.
 
 #### Unban (unsure)
 
