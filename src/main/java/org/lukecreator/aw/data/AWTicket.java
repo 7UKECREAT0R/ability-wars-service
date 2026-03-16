@@ -24,6 +24,7 @@ import org.jspecify.annotations.NonNull;
 import org.lukecreator.aw.AWDatabase;
 import org.lukecreator.aw.data.tickets.*;
 import org.lukecreator.aw.discord.AbilityWarsBot;
+import org.lukecreator.aw.discord.commands.TicketManageCommand;
 import org.lukecreator.aw.webserver.fulfillments.InfoFulfillment;
 
 import java.awt.*;
@@ -45,6 +46,7 @@ public abstract class AWTicket {
     public static final long CATEGORY_ID_APPEALS = 1346983262610001984L;
     public static final long CATEGORY_ID_DISPUTES = 1272859910685851709L;
     public static final long CATEGORY_ID_BLACKLIST_APPEALS = 1212490640215253022L;
+    public static final long CATEGORY_ID_SUPPORT = 1332191858624827577L;
     private static AtomicLong nextId = null;
     public final long id;
     public final long ownerDiscordId;
@@ -90,7 +92,7 @@ public abstract class AWTicket {
      * @throws SQLException             If something went wrong inside the database. Check logs.
      */
     @NotNull
-    public static Modal tryOpenNewTicket(AWTicket.Type ticketType, Guild currentGuild, UserSnowflake ticketOwner) throws IllegalArgumentException, SQLException {
+    public static Modal tryOpenNewTicket(Type ticketType, Guild currentGuild, UserSnowflake ticketOwner) throws IllegalArgumentException, SQLException {
         long guildId = currentGuild.getIdLong();
         if (ticketType.guildId != guildId) {
             throw new IllegalArgumentException("This ticket type isn't available in this server.");
@@ -134,6 +136,10 @@ public abstract class AWTicket {
                     new AWBanDisputeTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
             case BlacklistAppeal ->
                     new AWBlacklistAppealTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+            case DataLossReport ->
+                    new AWDataLossTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+            case ContentCreatorApplication ->
+                    new AWContentCreatorApplicationTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
         };
 
         Modal modal = ticket.createInputModal(nextTicketID);
@@ -306,7 +312,7 @@ public abstract class AWTicket {
      * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
      * @throws SQLException If a database access error occurs.
      */
-    public static AWTicket[] loadByOwner(UserSnowflake owner, int limit, AWTicket.Type type) throws SQLException {
+    public static AWTicket[] loadByOwner(UserSnowflake owner, int limit, Type type) throws SQLException {
         long ownerId = owner.getIdLong();
         try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE owner_discord_id = ? AND type = ? ORDER BY opened_timestamp DESC LIMIT ?")) {
             statement.setLong(1, ownerId);
@@ -340,7 +346,7 @@ public abstract class AWTicket {
      * @return An array of AWTicket objects sorted by their opened timestamps in descending order.
      * @throws SQLException If a database access error occurs.
      */
-    public static AWTicket[] loadByCloser(UserSnowflake closer, int limit, AWTicket.Type type) throws SQLException {
+    public static AWTicket[] loadByCloser(UserSnowflake closer, int limit, Type type) throws SQLException {
         long closerId = closer.getIdLong();
         try (var statement = AWDatabase.connection.prepareStatement("SELECT ticket_id FROM tickets WHERE is_open = false AND closed_by = ? AND type = ? ORDER BY opened_timestamp DESC LIMIT ?")) {
             statement.setLong(1, closerId);
@@ -376,7 +382,7 @@ public abstract class AWTicket {
      * @param type  The type of ticket to restrict the count to.
      * @return The number of tickets associated with the specified owner.
      */
-    public static int countByOwner(UserSnowflake owner, AWTicket.Type type) throws SQLException {
+    public static int countByOwner(UserSnowflake owner, Type type) throws SQLException {
         long ownerId = owner.getIdLong();
         try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE owner_discord_id = ? AND type = ?")) {
             statement.setLong(1, ownerId);
@@ -418,7 +424,7 @@ public abstract class AWTicket {
      * @return The total count of tickets closed by the specified user.
      * @throws SQLException If a database access error occurs during the query.
      */
-    public static int countByCloser(UserSnowflake closer, AWTicket.Type type) throws SQLException {
+    public static int countByCloser(UserSnowflake closer, Type type) throws SQLException {
         long closerId = closer.getIdLong();
         try (var statement = AWDatabase.connection.prepareStatement("SELECT COUNT(*) FROM tickets WHERE is_open = false AND closed_by = ? AND type = ?")) {
             statement.setLong(1, closerId);
@@ -440,7 +446,7 @@ public abstract class AWTicket {
      * @param value The unvalidated value to set the property to. May be null if the property was unspecified.
      * @param event The event to reply to as if a command was run.
      * @throws SQLException If something went wrong with the database internally.
-     * @see org.lukecreator.aw.discord.commands.TicketManageCommand
+     * @see TicketManageCommand
      */
     public abstract void setProperty(@NotNull String key, @Nullable String value, SlashCommandInteractionEvent event) throws SQLException;
 
@@ -448,7 +454,7 @@ public abstract class AWTicket {
      * Returns a list of available property names for the user to use when typing the {@code /ticket modify ...} command.
      *
      * @return The possible choices.
-     * @see org.lukecreator.aw.discord.commands.TicketManageCommand
+     * @see TicketManageCommand
      */
     public abstract String[] getPropertyChoices();
 
@@ -492,7 +498,7 @@ public abstract class AWTicket {
     }
 
     /**
-     * Returns the ticket {@link AWTicket.Type} that this ticket is.
+     * Returns the ticket {@link Type} that this ticket is.
      */
     public abstract Type type();
 
@@ -537,6 +543,9 @@ public abstract class AWTicket {
 
     /**
      * Create a Discord Modal for the user to input their answers to the opening questions.
+     * <p>
+     * The {@code customId} for the Modal should be the result of calling {@link Type#getCreationModalCustomId(long)}, passing
+     * in the parameter {@code newTicketId}.
      *
      * @return The created Modal.
      */
@@ -819,7 +828,11 @@ public abstract class AWTicket {
         BanDispute("ban-dispute", "Ban Dispute", 0xB1, 1, 1,
                 "dispute-", "Dispute a ban that was a mistake by staff", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_DISPUTES),
         BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1, 2,
-                "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS);
+                "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS),
+        DataLossReport("data-loss", "Report Data Loss", 0xC0, 1, 3,
+                "data-loss-", "Report a gifted gamepass that has gone missing.", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT),
+        ContentCreatorApplication("cc-application", "Content Creator Application", 0xC1, 1, 4,
+                "cc-app-", "If you make successful Ability Wars content, you can apply here to get the Content Creator role!", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT);
 
         public static final Command.Choice[] AS_COMMAND_CHOICES = Arrays
                 .stream(Type.values())
@@ -893,8 +906,8 @@ public abstract class AWTicket {
             return this.id >= 0xB0 && this.id <= 0xBF;
         }
 
-        public String getCreationModalCustomId() {
-            return "ticket_" + this.identifier;
+        public String getCreationModalCustomId(long id) {
+            return "ticket_" + this.identifier + "_" + id;
         }
     }
 }

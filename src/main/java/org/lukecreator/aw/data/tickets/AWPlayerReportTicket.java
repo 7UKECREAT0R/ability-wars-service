@@ -825,11 +825,10 @@ public class AWPlayerReportTicket extends AWTicket {
 
     @Override
     public Modal createInputModal(long newTicketId) {
-        Label usernameInput = Label.of("Username", TextInput
+        Label usernameInput = Label.of("Username", "The username of the rule-breaker.", TextInput
                 .create("username", TextInputStyle.SHORT)
                 .setRequired(true)
                 .setRequiredRange(2, 20)
-                .setPlaceholder("The username of the rule-breaker.")
                 .build());
         Label ruleBrokenInput = Label.of("Rule Broken", StringSelectMenu
                 .create("rule")
@@ -853,7 +852,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 .build());
 
         Type type = this.type();
-        String customId = type.getCreationModalCustomId() + "_" + newTicketId;
+        String customId = type.getCreationModalCustomId(newTicketId);
         return Modal.create(customId, type.description)
                 .addComponents(usernameInput, ruleBrokenInput, evidenceInput, evidenceDetails)
                 .build();

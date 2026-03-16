@@ -492,7 +492,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                 .build());
 
         Type type = this.type();
-        String customId = type.getCreationModalCustomId() + "_" + newTicketId;
+        String customId = type.getCreationModalCustomId(newTicketId);
         return this.finishInputModal(Modal.create(customId, type.description)
                 .addComponents(discordOrRobloxInput, usernameInput)
         ).build();
