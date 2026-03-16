@@ -830,9 +830,9 @@ public abstract class AWTicket {
         BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1, 2,
                 "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS),
         DataLossReport("data-loss", "Report Data Loss", 0xC0, 1, 3,
-                "data-loss-", "Report a gifted gamepass that has gone missing.", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT),
+                "data-loss-", "Report a lost gifted gamepass.", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT),
         ContentCreatorApplication("cc-application", "Content Creator Application", 0xC1, 1, 4,
-                "cc-app-", "If you make successful Ability Wars content, you can apply here to get the Content Creator role!", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT);
+                "cc-app-", "Apply to receive the Content Creator role!", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT);
 
         public static final Command.Choice[] AS_COMMAND_CHOICES = Arrays
                 .stream(Type.values())

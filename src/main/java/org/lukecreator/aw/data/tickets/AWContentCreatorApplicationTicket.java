@@ -92,7 +92,7 @@ public class AWContentCreatorApplicationTicket extends AWTicket {
         Label linkInput = Label.of("YouTube Channel/Tiktok Account Link", "Enter the link to the social media channel you are using for your application.",
                 TextInput.create("account-link", TextInputStyle.SHORT)
                         .setRequired(true)
-                        .setPlaceholder("www.youtube.com/@lukecreator")
+                        .setPlaceholder("e.g., www.youtube.com/@lukecreator")
                         .setRequiredRange(6, ACCOUNT_LINK_MAX_LENGTH)
                         .build());
 
@@ -254,6 +254,8 @@ public class AWContentCreatorApplicationTicket extends AWTicket {
             onFinishedLoading.accept(false);
             return;
         }
+
+        this.accountLink = linkInput;
 
         onFinishedLoading.accept(true);
         return;
