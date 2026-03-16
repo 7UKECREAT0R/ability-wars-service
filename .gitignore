@@ -11,8 +11,8 @@ icon.png
 !**/src/test/**/build/
 
 # machine-specific build stuff
-./unzip-move-docsite.ps1
-./webHelpAWD2-all.zip
+unzip-move-docsite.ps1
+webHelpAWD2-all.zip
 
 ### IntelliJ IDEA ###
 .idea/
