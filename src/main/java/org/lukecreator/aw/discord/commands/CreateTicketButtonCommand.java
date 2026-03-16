@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.lukecreator.aw.data.AWTicket;
+import org.lukecreator.aw.data.tickets.AWContentCreatorApplicationTicket;
 import org.lukecreator.aw.data.tickets.AWUnbanTicket;
 import org.lukecreator.aw.discord.BotCommand;
 import org.lukecreator.aw.discord.StaffRoles;
@@ -53,33 +54,39 @@ public class CreateTicketButtonCommand extends BotCommand {
         if (StaffRoles.blockIfNotStaff(e))
             return;
 
-        MessageEmbed embed;
-        switch (ticketType) {
-            case PlayerReport -> embed = new EmbedBuilder()
+        MessageEmbed embed = switch (ticketType) {
+            case PlayerReport -> new EmbedBuilder()
                     .setColor(new Color(65, 162, 232))
                     .setTitle("Report a Player")
                     .setDescription("If you've found somebody breaking the rules, open a ticket here so that a staff member can help remove them from the game! We require video evidence generally.")
                     .build();
-            case BanAppeal -> embed = new EmbedBuilder()
+            case BanAppeal -> new EmbedBuilder()
                     .setColor(new Color(65, 232, 129))
                     .setTitle("Open an Appeal")
                     .setDescription("If you've been fairly banned for 6 months or longer, you may open an appeal to be unbanned. Please read <#" + AWUnbanTicket.INFO_CHANNEL_ID + "> first before doing so!")
                     .build();
-            case BanDispute -> embed = new EmbedBuilder()
+            case BanDispute -> new EmbedBuilder()
                     .setColor(new Color(232, 187, 65))
                     .setTitle("Open a Dispute")
                     .setDescription("If you believe you were banned by mistake, open a dispute and we'll do our best to re-review the incident more closely. We also can make mistakes.")
                     .build();
-            case BlacklistAppeal -> embed = new EmbedBuilder()
+            case BlacklistAppeal -> new EmbedBuilder()
                     .setColor(new Color(114, 50, 161))
                     .setTitle("Open a Blacklist Appeal")
                     .setDescription("If you repeatedly created bad tickets, low-effort suggestions, or other various wastes of our time, you may have been blacklisted. Open a ticket here if you wish to re-gain access to player reports, suggestions, or bug reports.")
                     .build();
-            default -> {
-                e.reply("Unknown ticket type: \"%s\"".formatted(typeId)).setEphemeral(true).queue();
-                return;
-            }
-        }
+            case DataLossReport -> new EmbedBuilder()
+                    .setColor(new Color(194, 105, 54))
+                    .setTitle("Get Support with Gift/Data Loss")
+                    .setDescription("If you've sent a gift to someone in game and they didn't receive it, please open a ticket and we'll investigate.")
+                    .build();
+            case ContentCreatorApplication -> new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setTitle("Submit Content Creator Application")
+                    .setDescription("If you meet our requirements, you can submit an application for the <@&%d> role in our Discord server!".formatted(AWContentCreatorApplicationTicket.CC_ROLE_ID))
+                    .build();
+        };
+
 
         Button openTicketButton = Button.of(
                 ButtonStyle.SUCCESS,
