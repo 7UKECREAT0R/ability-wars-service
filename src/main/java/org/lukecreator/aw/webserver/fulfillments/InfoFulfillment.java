@@ -148,8 +148,6 @@ public class InfoFulfillment extends Fulfillment {
      */
     public boolean isCurrentlyBanned() {
         AWBan latestBan = this.getMostRecentBan();
-        System.out.printf("Latest ban for user %s out of %d total:%n", this.username, this.bans.length);
-        System.out.println(latestBan);
         if (latestBan == null)
             return false;
         return latestBan.ends() == null || latestBan.ends() > System.currentTimeMillis();

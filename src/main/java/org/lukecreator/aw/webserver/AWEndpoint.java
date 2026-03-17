@@ -65,7 +65,6 @@ public class AWEndpoint {
             }
             for (JsonElement f : json.getAsJsonArray("fulfill")) {
                 JsonObject fulfillmentJson = f.getAsJsonObject();
-                System.out.println("Got fulfillment: " + this.gsonInstance.toJson(fulfillmentJson));
                 Fulfillment parsed = Fulfillment.parse(fulfillmentJson);
                 fulfillments.add(parsed);
             }

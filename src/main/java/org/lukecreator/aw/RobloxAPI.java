@@ -232,18 +232,10 @@ public class RobloxAPI {
             String resultImageUrl = usefulJson.get("imageUrl").getAsString();
 
             // URL checks to make sure it can go in an embed
-            if (resultImageUrl.length() > MessageEmbed.URL_MAX_LENGTH) {
-                System.out.println("Warning: Roblox API returned a URL that was too long; not using it:");
-                System.out.println(resultImageUrl);
+            if (resultImageUrl.length() > MessageEmbed.URL_MAX_LENGTH)
                 return null;
-            }
-            if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches()) {
-                System.out.println("Warning: Roblox API returned an invalid URL; not using it:");
-                System.out.println(resultImageUrl);
-                System.out.println("Full JSON response:");
-                System.out.println(uselessJson);
+            if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches())
                 return null;
-            }
             return resultImageUrl;
         } catch (Exception e) {
             return null;
