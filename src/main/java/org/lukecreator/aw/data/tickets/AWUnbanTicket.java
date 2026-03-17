@@ -903,28 +903,42 @@ public abstract class AWUnbanTicket extends AWTicket {
                 return;
             }
             UserSnowflake discordToUnban = UserSnowflake.fromId(this.discordIdToUnban);
-            this.discordBan = abilityWars.retrieveBan(discordToUnban)
-                    .onErrorMap(throwable -> null)
-                    .complete(); // evil synchronous statement
-            if (this.discordBan == null) {
-                event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is not currently banned from the Ability Wars Discord. You can rejoin using our invite link `discord.gg/abilitywars`.\n\n" +
-                        "If you're still unable to join, please make sure to appeal for any alternate accounts you may be banned on.").queue();
-                onFinishedLoading.accept(false);
-                return;
-            }
+            abilityWars.retrieveBan(discordToUnban)
+                    .queue(success -> {
+                        this.discordBan = success;
 
-            // check for blacklist
-            DiscordAppealBlacklist appealBlacklist = DiscordAppealBlacklist.get(this.discordIdToUnban);
-            if (appealBlacklist != null) {
-                event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is blacklisted. This ticket cannot be opened.").queue();
-                onFinishedLoading.accept(false);
-                return;
-            }
+                        if (this.discordBan == null) {
+                            event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is not currently banned from the Ability Wars Discord. You can rejoin using our invite link `discord.gg/abilitywars`.\n\n" +
+                                    "If you're still unable to join, please make sure to appeal for any alternate accounts you may be banned on.").queue();
+                            onFinishedLoading.accept(false);
+                            return;
+                        }
 
-            // check for any other tickets that are appealing for the same account
-            this.collectRelatedTickets(true);
-            onFinishedLoading.accept(true);
-            return;
+                        // check for blacklist
+                        try {
+                            DiscordAppealBlacklist appealBlacklist = DiscordAppealBlacklist.get(this.discordIdToUnban);
+                            if (appealBlacklist != null) {
+                                event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is blacklisted. This ticket cannot be opened.").queue();
+                                onFinishedLoading.accept(false);
+                                return;
+                            }
+
+                            // check for any other tickets that are appealing for the same account
+                            this.collectRelatedTickets(true);
+                            onFinishedLoading.accept(true);
+                            return;
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            event.getHook().editOriginal("I encountered an issue while looking through my database. Here's the error:\n```\n" + e + "\n```").queue();
+                            onFinishedLoading.accept(false);
+                            return;
+                        }
+
+                    }, failure -> {
+                        event.getHook().editOriginal("I'm having a hard time connecting to the Ability Wars Discord right now. Please wait a bit before trying again, or contact a developer.").queue();
+                        onFinishedLoading.accept(false);
+                        return;
+                    });
         } else {
             if (this.robloxUserToUnban == null) {
                 event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +

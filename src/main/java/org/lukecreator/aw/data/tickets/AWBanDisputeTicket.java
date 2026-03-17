@@ -127,17 +127,20 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
                 onFinishedLoading.accept(false);
                 return;
             }
-            if (this.temporaryInfoFulfillment == null) {
-                onFinishedLoading.accept(false); // shouldn't happen, but if it does, the message has already been edited.
-                return;
-            }
 
-            AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
-            String currentBanReason = currentBan == null ? null : currentBan.reason();
-            if (isReasonBecauseOfAnticheatBan(currentBanReason)) {
-                event.getHook().editOriginal("This ban cannot be disputed; the decision is final.").queue();
-                onFinishedLoading.accept(false);
-                return;
+            if (!this.isForDiscord) {
+                if (this.temporaryInfoFulfillment == null) {
+                    onFinishedLoading.accept(false); // shouldn't happen, but if it does, the message has already been edited.
+                    return;
+                }
+
+                AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
+                String currentBanReason = currentBan == null ? null : currentBan.reason();
+                if (isReasonBecauseOfAnticheatBan(currentBanReason)) {
+                    event.getHook().editOriginal("This ban cannot be disputed; the decision is final.").queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
             }
 
             // the super method already called `deferReply` with `ephemeral` true
