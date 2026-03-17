@@ -113,7 +113,8 @@ public class BanCheckCommand extends BotCommand {
                 .setColor(isBanned ? Color.RED : Color.GREEN);
 
         if (isBanned) {
-            AWBan ban = awPlayer.bans.currentBan();
+            AWBan ban = awPlayer.bans.getMostRecentBan();
+            assert ban != null;
             String banDurationString = ban.durationString();
             String remainingString = ban.remainingString();
             eb.appendDescription("Currently banned " + banDurationString + ". " + remainingString);

@@ -240,6 +240,8 @@ public class RobloxAPI {
             if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches()) {
                 System.out.println("Warning: Roblox API returned an invalid URL; not using it:");
                 System.out.println(resultImageUrl);
+                System.out.println("Full JSON response:");
+                System.out.println(uselessJson);
                 return null;
             }
             return resultImageUrl;

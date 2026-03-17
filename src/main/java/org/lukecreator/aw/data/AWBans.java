@@ -1,5 +1,6 @@
 package org.lukecreator.aw.data;
 
+import org.jetbrains.annotations.Nullable;
 import org.lukecreator.aw.AWDatabase;
 
 import java.sql.PreparedStatement;
@@ -127,18 +128,30 @@ public class AWBans {
      * @return {@code true} if the user is currently banned; {@code false} otherwise.
      */
     public boolean isCurrentlyBanned() {
-        if (this.bans.isEmpty())
+        AWBan latestBan = this.getMostRecentBan();
+        if (latestBan == null)
             return false;
-        AWBan lastBan = this.bans.get(this.bans.size() - 1);
-        return lastBan.ends() == null || lastBan.ends() > System.currentTimeMillis();
+        return latestBan.ends() == null || latestBan.ends() > System.currentTimeMillis();
     }
 
     /**
-     * Returns the last (current) ban on record. This method DOESN'T guarantee that the user is currently banned.
-     * Use {@link #isCurrentlyBanned()} to figure that part out.
+     * Returns the latest ban for this player.
+     *
+     * @return The latest ban for this player, or {@code null} if the user has never been banned.
      */
-    public AWBan currentBan() {
-        return this.bans.get(this.bans.size() - 1);
+    @Nullable
+    public AWBan getMostRecentBan() {
+        if (this.bans == null || this.bans.isEmpty())
+            return null;
+        long mostRecentBanTime = 0L;
+        AWBan mostRecentBan = null;
+        for (AWBan ban : this.bans) {
+            if (ban.starts() > mostRecentBanTime) {
+                mostRecentBanTime = ban.starts();
+                mostRecentBan = ban;
+            }
+        }
+        return mostRecentBan;
     }
 
     /**

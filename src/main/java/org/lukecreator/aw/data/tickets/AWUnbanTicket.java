@@ -233,9 +233,9 @@ public abstract class AWUnbanTicket extends AWTicket {
      * excluding any members mentioned due to reply pings.
      */
     private static @NonNull List<Member> getMentionedMembersWithoutReplyPings(Mentions mentions, Message message) {
-        List<Member> mentionedMembers = mentions.getMembers();
+        List<Member> mentionedMembers = new ArrayList<>(mentions.getMembers());
 
-        // don't count reply pings. we actually care about those pings
+        // don't count reply pings. we actually care about those pings, 
         // and they just cause more issues than not.
         Message referencedMessage = message.getReferencedMessage();
         if (message.getType() == MessageType.INLINE_REPLY && referencedMessage != null) {

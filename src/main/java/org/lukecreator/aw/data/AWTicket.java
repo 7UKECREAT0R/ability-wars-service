@@ -159,26 +159,21 @@ public abstract class AWTicket {
                                                       boolean isOpen, String closeReason,
                                                       long closedByDiscordId, JsonObject inputQuestions,
                                                       long ownerDiscordId) {
-        switch (type) {
-            case PlayerReport -> {
-                return new AWPlayerReportTicket(id, discordChannelId, openedTimestamp,
-                        isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
-            }
-            case BanAppeal -> {
-                return new AWBanAppealTicket(id, discordChannelId, openedTimestamp,
-                        isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
-            }
-            case BanDispute -> {
-                return new AWBanDisputeTicket(id, discordChannelId, openedTimestamp,
-                        isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
-            }
-            case BlacklistAppeal -> {
-                return new AWBlacklistAppealTicket(id, discordChannelId, openedTimestamp,
-                        isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
-            }
-            default -> throw new RuntimeException("Tried to create a ticket with an invalid type. (type: %d, id: %d)"
-                    .formatted(type.id, id));
-        }
+        return switch (type) {
+            case PlayerReport -> new AWPlayerReportTicket(id, discordChannelId, openedTimestamp,
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+            case BanAppeal -> new AWBanAppealTicket(id, discordChannelId, openedTimestamp,
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+            case BanDispute -> new AWBanDisputeTicket(id, discordChannelId, openedTimestamp,
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+            case BlacklistAppeal -> new AWBlacklistAppealTicket(id, discordChannelId, openedTimestamp,
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+            case DataLossReport -> new AWDataLossTicket(id, discordChannelId, openedTimestamp,
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+            case ContentCreatorApplication ->
+                    new AWContentCreatorApplicationTicket(id, discordChannelId, openedTimestamp,
+                            isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+        };
     }
 
     private static void initializeNextAvailableTicketID() throws SQLException {
