@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -210,36 +211,75 @@ public class RobloxAPI {
     /**
      * Generates and returns the URL of the avatar bust image for the given Roblox user ID.
      * This method fetches the avatar image by making an external HTTP request to the Roblox API.
-     * If the HTTP request fails or the response is invalid, this method returns null.
+     * If the HTTP request fails or the response is invalid, the failure consumer will be called.
+     * <p>
+     * When the request is completed, the completed consumer will be called. This method may block the executing thread
+     * while waiting to retry the request if it's still being generated.
      *
-     * @param userId The Roblox ID of the user whose avatar bust image URL is to be retrieved.
-     * @return A string representing the URL of the user's avatar bust image, or null if unable to retrieve.
+     * @param userId      The Roblox ID of the user whose avatar bust image URL is to be retrieved.
+     * @param onCompleted The consumer to be called when the request is completed, successful or not. The passed in string will either be {@code null}, or a valid URL pointing to the user's avatar bust image.
+     * @param onFailure   The consumer to be called if the request fails. The passed in exception will be the cause of the failure. Has a friendly message for display.
      */
-    public static @Nullable String renderAvatarBustImageURL(long userId) {
-        String requestURL = getAvatarBustApiURL(userId, 352, false);
-        HttpRequest request = HttpRequest.newBuilder(URI.create(requestURL))
+    public static void renderAvatarBustImageURLAsync(long userId, Consumer<String> onCompleted, @Nullable Consumer<Throwable> onFailure) {
+        final String requestURL = getAvatarBustApiURL(userId, 352, false);
+        final HttpRequest request = HttpRequest.newBuilder(URI.create(requestURL))
                 .header("Accept", "application/json")
                 .GET()
                 .build();
+        int retriesMax = 4;
+        long delay = 50;
 
-        try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200)
-                return null;
-            JsonObject uselessJson = JsonParser.parseString(response.body()).getAsJsonObject();
-            JsonArray usefulJsonList = uselessJson.getAsJsonArray("data").getAsJsonArray();
-            JsonObject usefulJson = usefulJsonList.get(0).getAsJsonObject();
-            String resultImageUrl = usefulJson.get("imageUrl").getAsString();
+        while (retriesMax-- > 0) {
+            try {
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    if (onFailure != null)
+                        onFailure.accept(new Exception("Request to Roblox API failed with status code " + response.statusCode() + ". Failed request URL: " + requestURL));
+                    onCompleted.accept(null);
+                    return;
+                }
 
-            // URL checks to make sure it can go in an embed
-            if (resultImageUrl.length() > MessageEmbed.URL_MAX_LENGTH)
-                return null;
-            if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches())
-                return null;
-            return resultImageUrl;
-        } catch (Exception e) {
-            return null;
+                String bodyRaw = response.body();
+                JsonObject uselessJson = JsonParser.parseString(bodyRaw).getAsJsonObject();
+                JsonArray usefulJsonList = uselessJson.getAsJsonArray("data").getAsJsonArray();
+                JsonObject usefulJson = usefulJsonList.get(0).getAsJsonObject();
+                String state = usefulJson.get("state").getAsString();
+
+                if (state.equalsIgnoreCase("Pending")) {
+                    Thread.sleep(delay);
+                    delay *= 2;
+                    continue;
+                }
+
+                String resultImageUrl = usefulJson.get("imageUrl").getAsString();
+
+                // URL checks to make sure it can go in an embed
+                if (resultImageUrl.length() > MessageEmbed.URL_MAX_LENGTH) {
+                    if (onFailure != null)
+                        onFailure.accept(new Exception("Response image URL was abnormally long."));
+                    onCompleted.accept(null);
+                    return;
+                }
+                if (!EmbedBuilder.URL_PATTERN.matcher(resultImageUrl).matches()) {
+                    if (onFailure != null)
+                        onFailure.accept(new Exception("Response image was not a valid URL: \"" + resultImageUrl + "\""));
+                    onCompleted.accept(null);
+                    return;
+                }
+
+                onCompleted.accept(resultImageUrl);
+                return;
+            } catch (Exception e) {
+                if (onFailure != null)
+                    onFailure.accept(e);
+                onCompleted.accept(null);
+                return;
+            }
         }
+        if (onFailure != null)
+            onFailure.accept(new Exception("No valid response from Roblox API after multiple attempts. Try again later."));
+        onCompleted.accept(null);
+        return;
     }
 
     /**

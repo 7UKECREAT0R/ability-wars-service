@@ -76,7 +76,7 @@ public class AWPlayerReportTicket extends AWTicket {
     private String evidenceDetails;
     private Long evidenceId;
     private RobloxAPI.User accusedUser;
-    private String accusedUserBustImageURL;
+    private @Nullable String accusedUserBustImageURL;
 
     public AWPlayerReportTicket(long id,
                                 long discordChannelId, long openedTimestamp,
@@ -761,66 +761,74 @@ public class AWPlayerReportTicket extends AWTicket {
             return;
         }
 
-        this.accusedUserBustImageURL = RobloxAPI.renderAvatarBustImageURL(this.accusedUser.userId());
+        RobloxAPI.renderAvatarBustImageURLAsync(this.accusedUser.userId(), successfulBustImage -> {
+            if (successfulBustImage != null)
+                this.accusedUserBustImageURL = successfulBustImage;
 
-        // try to get the roblox username of the reporter, so we can make sure they're not reporting themselves
-        Long reporterRobloxId = BloxlinkAPI.lookupRobloxId(this.ownerDiscordId);
-        if (reporterRobloxId != null) {
-            if (this.accusedUser.userId() == reporterRobloxId) {
-                event.getHook().editOriginal("You can't report yourself!").queue();
-                onFinishedLoading.accept(false);
-                return;
-            }
-        }
-
-
-        // check evidence (if present)
-        if (!this.evidenceURL.isEmpty()) {
-            if (!isSupportedService(this.evidenceURL)) {
-                String serviceName = getKnownServiceName(this.evidenceURL);
-                if (serviceName == null)
-                    event.getHook().editOriginal("We don't support the video host you provided ([this one](" + this.evidenceURL + ")) for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
-                else
-                    event.getHook().editOriginal("We don't support " + serviceName + " for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
-                onFinishedLoading.accept(false);
-                return;
-            }
-            // supported service. create an evidence entry for it
-            long id = System.currentTimeMillis(); // is probably unique
-            this.evidenceId = id;
-            long timestamp = this.hasEvidenceDetails() ? AWEvidence.tryExtractTimestamp(this.evidenceDetails) : 0L;
-
-            AWEvidence evidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
-            evidence.pushToDatabase();
-
-            // link the ticket and evidence together in the database
-            Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
-        }
-
-        this.accusedUsername = this.accusedUser.username();
-        long reportedUserId = this.accusedUser.userId();
-
-        PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), reportedUserId).onFulfilled(info -> {
-            this.temporaryInfoFulfillment = (InfoFulfillment) info;
-
-            // if the user is currently banned, cancel and let the reporter know
-            if (this.temporaryInfoFulfillment.isCurrentlyBanned()) {
-                event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
-                onFinishedLoading.accept(false);
-                return;
+            // try to get the roblox username of the reporter, so we can make sure they're not reporting themselves
+            Long reporterRobloxId = BloxlinkAPI.lookupRobloxId(this.ownerDiscordId);
+            if (reporterRobloxId != null) {
+                if (this.accusedUser.userId() == reporterRobloxId) {
+                    event.getHook().editOriginal("You can't report yourself!").queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
             }
 
-            // check if any other tickets are actively open reporting the same user and link them together
-            this.collectRelatedTickets(true);
 
-            // finish the chain
-            onFinishedLoading.accept(true);
+            // check evidence (if present)
+            if (!this.evidenceURL.isEmpty()) {
+                if (!isSupportedService(this.evidenceURL)) {
+                    String serviceName = getKnownServiceName(this.evidenceURL);
+                    if (serviceName == null)
+                        event.getHook().editOriginal("We don't support the video host you provided ([this one](" + this.evidenceURL + ")) for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
+                    else
+                        event.getHook().editOriginal("We don't support " + serviceName + " for video evidence! Please upload your video to YouTube, Gyazo, or leave the field empty and upload the video directly into Discord later.").queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
+                // supported service. create an evidence entry for it
+                long id = System.currentTimeMillis(); // is probably unique
+                this.evidenceId = id;
+                long timestamp = this.hasEvidenceDetails() ? AWEvidence.tryExtractTimestamp(this.evidenceDetails) : 0L;
+
+                try {
+                    AWEvidence evidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
+                    evidence.pushToDatabase();
+
+                    // link the ticket and evidence together in the database
+                    Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+                } catch (SQLException sqlException) {
+                    sqlException.printStackTrace();
+                    event.getHook().editOriginal("Something went terribly wrong while trying to save the evidence you provided. Please report this to a developer:\n```\n" + sqlException + "\n```").queue();
+                    onFinishedLoading.accept(false);
+                }
+            }
+
+            this.accusedUsername = this.accusedUser.username();
+            long reportedUserId = this.accusedUser.userId();
+
+            PendingRequest request = new InfoRequest(PendingRequest.getNextRequestId(), reportedUserId).onFulfilled(info -> {
+                this.temporaryInfoFulfillment = (InfoFulfillment) info;
+
+                // if the user is currently banned, cancel and let the reporter know
+                if (this.temporaryInfoFulfillment.isCurrentlyBanned()) {
+                    event.getHook().editOriginal("The user you tried to report has already been banned! Thanks for your efforts!").queue();
+                    onFinishedLoading.accept(false);
+                    return;
+                }
+
+                // check if any other tickets are actively open reporting the same user and link them together
+                this.collectRelatedTickets(true);
+
+                // finish the chain
+                onFinishedLoading.accept(true);
+                return;
+            });
+
+            PendingRequests.add(request);
             return;
-        });
-
-        PendingRequests.add(request);
-        return;
-
+        }, null);
     }
 
     @Override
@@ -877,7 +885,7 @@ public class AWPlayerReportTicket extends AWTicket {
         User ticketOwner = jda.getUserById(this.ownerDiscordId);
 
         EmbedBuilder eb = new EmbedBuilder();
-        if (this.accusedUserBustImageURL != null && EmbedBuilder.URL_PATTERN.matcher(this.accusedUserBustImageURL).matches())
+        if (this.accusedUserBustImageURL != null)
             eb.setThumbnail(this.accusedUserBustImageURL);
         eb.setColor(new Color(103, 110, 233));
         eb.setTitle("Ticket " + this.id);

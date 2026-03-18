@@ -57,17 +57,18 @@ public class RobloxSearchCommand extends BotCommand {
         if (bio != null && !bio.isBlank())
             eb.addField("Bio", user.bio(), false);
 
-        String avatarBustImage = RobloxAPI.renderAvatarBustImageURL(user.userId());
-        if (avatarBustImage != null)
-            eb.setThumbnail(avatarBustImage);
+        RobloxAPI.renderAvatarBustImageURLAsync(user.userId(), successfulBustImage -> {
+            if (successfulBustImage != null)
+                eb.setThumbnail(successfulBustImage);
 
-        if (linkedDiscordId != null) {
-            // extended information
-            boolean isAdmin = ApprovedAwesomeAdministratorsAdmins.isApprovedAwesomeAdministratorAdmin(linkedDiscordId);
-            eb.addField("Linked Discord", "<@" + linkedDiscordId + ">", true);
-            eb.addField("Bot Admin", isAdmin ? "Yes" : "No", true);
-        }
+            if (linkedDiscordId != null) {
+                // extended information
+                boolean isAdmin = ApprovedAwesomeAdministratorsAdmins.isApprovedAwesomeAdministratorAdmin(linkedDiscordId);
+                eb.addField("Linked Discord", "<@" + linkedDiscordId + ">", true);
+                eb.addField("Bot Admin", isAdmin ? "Yes" : "No", true);
+            }
 
-        e.replyEmbeds(eb.build()).setAllowedMentions(Collections.emptyList()).setEphemeral(false).queue();
+            e.replyEmbeds(eb.build()).setAllowedMentions(Collections.emptyList()).setEphemeral(false).queue();
+        }, null);
     }
 }
