@@ -18,8 +18,10 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -907,13 +909,6 @@ public abstract class AWUnbanTicket extends AWTicket {
                     .queue(success -> {
                         this.discordBan = success;
 
-                        if (this.discordBan == null) {
-                            event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is not currently banned from the Ability Wars Discord. You can rejoin using our invite link `discord.gg/abilitywars`.\n\n" +
-                                    "If you're still unable to join, please make sure to appeal for any alternate accounts you may be banned on.").queue();
-                            onFinishedLoading.accept(false);
-                            return;
-                        }
-
                         // check for blacklist
                         try {
                             DiscordAppealBlacklist appealBlacklist = DiscordAppealBlacklist.get(this.discordIdToUnban);
@@ -929,16 +924,22 @@ public abstract class AWUnbanTicket extends AWTicket {
                             return;
                         } catch (SQLException e) {
                             e.printStackTrace();
-                            event.getHook().editOriginal("I encountered an issue while looking through my database. Here's the error:\n```\n" + e + "\n```").queue();
+                            event.getHook().editOriginal("I encountered an issue while looking through my database. Pls report! Here's the error:\n```\n" + e + "\n```").queue();
                             onFinishedLoading.accept(false);
                             return;
                         }
 
-                    }, failure -> {
-                        event.getHook().editOriginal("I'm having a hard time connecting to the Ability Wars Discord right now. Please wait a bit before trying again, or contact a developer.").queue();
-                        onFinishedLoading.accept(false);
-                        return;
-                    });
+                    }, new ErrorHandler()
+                            .handle(ErrorResponse.UNKNOWN_BAN, (unknownBan) -> {
+                                event.getHook().editOriginal("The Discord user " + discordToUnban.getAsMention() + " is not currently banned from the Ability Wars Discord. You can rejoin using our invite link `discord.gg/abilitywars`.\n\n" +
+                                        "If you're still unable to join, please make sure to appeal for any alternate accounts you may be banned on.").queue();
+                                onFinishedLoading.accept(false);
+                                return;
+                            }).andThen(failure -> {
+                                event.getHook().editOriginal("I'm having a hard time connecting to the Ability Wars Discord right now. Please wait a bit before trying again, or contact a developer with this information:\n```\n" + failure + "\n```").queue();
+                                onFinishedLoading.accept(false);
+                                return;
+                            }));
         } else {
             if (this.robloxUserToUnban == null) {
                 event.getHook().editOriginal("Couldn't find any users on Roblox with the ID `" + userIdString.replace("`", "") + "`. Please try again.\n" +
