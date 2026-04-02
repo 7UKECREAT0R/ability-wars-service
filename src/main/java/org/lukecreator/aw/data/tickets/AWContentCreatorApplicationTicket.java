@@ -134,9 +134,17 @@ public class AWContentCreatorApplicationTicket extends AWTicket {
 
     @Override
     public List<MessageEmbed> getInitialMessageEmbeds(JDA jda) {
+        User ticketOwner = jda.getUserById(this.ownerDiscordId);
+
         EmbedBuilder eb = new EmbedBuilder();
         eb.setColor(Color.RED);
         eb.setTitle("Ticket " + this.id);
+
+        if (ticketOwner == null)
+            eb.setDescription("Content Creator Application, opened by <@" + this.ownerDiscordId + ">");
+        else
+            eb.setDescription("Content Creator Application, opened by %s (%s)".formatted(ticketOwner.getAsMention(), ticketOwner.getName()));
+
         eb.setDescription("Content Creator Application with YouTube/TikTok account.");
         eb.addField("Account Link", this.accountLink, false);
         eb.addField("Requirements", "- 1,000+ Subscribers or 5,000+ Followers\n- 2,500+ Views on Ability Wars long-form video or 20,000+ Views on an Ability Wars TikTok video.\n- Account is connected to their Discord account.", false);
