@@ -124,6 +124,12 @@ public abstract class AWUnbanTicket extends AWTicket {
     @Nullable
     protected Guild.Ban discordBan;
     /**
+     * If not {@link #isForDiscord}, this is a temporary cache of evidence linked to the user's ban. In the current logic, this is only loaded for disputes, since we only generally need evidence for those.
+     * May be null if this ticket has been reloaded via cache since being created. This field isn't loaded after a cache load (see {@link #afterCacheLoaded()}).
+     */
+    @Nullable
+    protected AWEvidence[] temporaryEvidence;
+    /**
      * The number of times a ping warning has been sent to the user for this ticket.
      */
     private int numberOfPingWarnings = 0;
@@ -428,6 +434,45 @@ public abstract class AWUnbanTicket extends AWTicket {
         }
     }
 
+    /**
+     * Attempts to collect evidence for the given user based on the current state of the object.
+     * The method checks if evidence already exists or retrieves it from the database.
+     * If the user has an active ban, it attempts to retrieve the linked evidence.
+     * Otherwise, it loads evidence available against the user's ID.
+     *
+     * @throws SQLException if a database access error occurs while retrieving evidence or user data.
+     */
+    protected void tryCollectEvidence() throws SQLException {
+        if (this.isForDiscord)
+            return;
+
+        if (this.temporaryEvidence == null) {
+            AWBan activeBan;
+            if (this.temporaryInfoFulfillment != null) {
+                activeBan = this.temporaryInfoFulfillment.getMostRecentBan();
+            } else {
+                AWPlayer player = AWPlayer.loadFromDatabase(this.robloxIdToUnban, false, true, true, false);
+                activeBan = player.bans.getMostRecentBan();
+            }
+            if (activeBan == null) {
+                this.temporaryEvidence = AWEvidence.loadEvidenceAgainstUserId(this.robloxIdToUnban);
+                return;
+            } else {
+                this.temporaryEvidence = activeBan.getLinkedEvidence();
+                if (this.temporaryEvidence.length == 0) {
+                    this.temporaryEvidence = AWEvidence.loadEvidenceAgainstUserId(this.robloxIdToUnban);
+                    return;
+                }
+                return;
+            }
+        } else if (this.temporaryEvidence.length == 0) {
+            this.temporaryEvidence = AWEvidence.loadEvidenceAgainstUserId(this.robloxIdToUnban);
+            return;
+        }
+
+        return;
+    }
+
     @Override
     public void afterCacheLoaded() {
         if (!this.isForDiscord && this.robloxIdToUnban != 0 && this.robloxUserToUnban == null && this.playerToUnban == null) {
@@ -626,8 +671,10 @@ public abstract class AWUnbanTicket extends AWTicket {
 
         actions.add(new TicketAction("unbancustom", "Unban (custom)", ButtonStyle.SUCCESS, this.id));
 
-        if (!this.isForDiscord)
+        if (!this.isForDiscord) {
             actions.add(new TicketAction("retime", "Set Ban Length", ButtonStyle.SUCCESS, this.id));
+            actions.add(new TicketAction("getevidence", "Retrieve Evidence", ButtonStyle.SECONDARY, this.id));
+        }
 
         return actions.toArray(new TicketAction[0]);
     }
@@ -737,6 +784,48 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "retime": {
                 Modal modal = ActionModals.closeTicketAndRetimeBan(this);
                 event.replyModal(modal).queue();
+                break;
+            }
+            case "getevidence": {
+                if (this.isForDiscord) {
+                    event.reply("This feature is not available for Discord bans. Idk how you did this.").setEphemeral(true).queue();
+                    return;
+                }
+
+                event.deferReply(true).queue();
+
+                try {
+                    this.tryCollectEvidence();
+                } catch (SQLException e) {
+                    event.getHook().editOriginal("Something went seriously wrong while trying to retrieve evidence. Send this to the developers:\n```\n" + e + "\n```").queue();
+                    return;
+                }
+
+                if (this.temporaryEvidence == null) {
+                    event.getHook().editOriginal("I was unable to retrieve any evidence successfully.").queue();
+                    return;
+                }
+
+                EmbedBuilder eb = new EmbedBuilder()
+                        .setTitle("For User " + this.robloxIdToUnban)
+                        .setDescription("Obtained " + this.temporaryEvidence.length + " piece(s) of evidence against this user.")
+                        .setColor(Color.WHITE);
+
+                if (this.temporaryEvidence.length == 0) {
+                    eb.addField("Evidence", "No evidence is linked to this ban internally; you'll need to check manually.", false);
+                } else {
+                    String[] evidenceLines = new String[this.temporaryEvidence.length];
+                    for (int i = 0; i < this.temporaryEvidence.length; i++) {
+                        AWEvidence evidence = this.temporaryEvidence[i];
+                        String line = "- ⚠️ " + evidence.evidenceId;
+                        if (!evidence.details.isBlank())
+                            line = line.concat("\n-# ").concat(evidence.details);
+                        evidenceLines[i] = line;
+                    }
+                    eb.addField("Evidence", String.join("\n", evidenceLines), false);
+                }
+
+                event.getHook().editOriginalEmbeds(eb.build()).queue();
                 break;
             }
         }

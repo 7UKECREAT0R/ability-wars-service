@@ -2,6 +2,7 @@ package org.lukecreator.aw.data;
 
 import com.google.gson.JsonObject;
 
+import java.sql.SQLException;
 import java.util.Objects;
 
 /**
@@ -126,6 +127,16 @@ public final class AWBan {
 
     public String displayReasonOrDefault() {
         return (this.reason != null && !this.reason.isBlank()) ? this.reason : "No reason specified";
+    }
+
+    /**
+     * Retrieves an array of {@link AWEvidence} objects linked to this ban.
+     *
+     * @return An array of {@link AWEvidence} objects representing the evidence linked to this ban.
+     * @throws SQLException If an error occurs while retrieving the linked evidence from the database.
+     */
+    public AWEvidence[] getLinkedEvidence() throws SQLException {
+        return Links.BanEvidenceLinks.getEvidenceLinkedToBan(this.userId, this.starts);
     }
 
     @Override

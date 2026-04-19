@@ -73,24 +73,18 @@ public class AWBanAppealTicket extends AWUnbanTicket {
     @Override
     public Modal.Builder finishInputModal(Modal.Builder modal) {
         return modal.addComponents(
-                Label.of("Why were you banned?", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
+                Label.of("Why were you banned?", "Tell us why you were banned.", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(10)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .setPlaceholder(this.isForDiscord ?
-                                "Tell us why you were banned from our Discord." :
-                                "Tell us why you were banned from Ability Wars."
-                        )
                         .build()),
-                Label.of("Why should you be unbanned?", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
+                Label.of("Why should you be unbanned?", "We're taking a risk by unbanning you. Why should we?", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(10)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .setPlaceholder("We're taking a risk by unbanning you. Why should we?")
                         .build()),
                 Label.of("Anything else you'd like to tell us?", TextInput.create("question-c", TextInputStyle.PARAGRAPH)
                         .setRequired(false)
-                        .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
                         .build())
         );

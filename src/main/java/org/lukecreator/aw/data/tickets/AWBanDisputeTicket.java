@@ -2,21 +2,16 @@ package org.lukecreator.aw.data.tickets;
 
 import com.google.gson.JsonObject;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.components.actionrow.ActionRow;
-import net.dv8tion.jda.api.components.buttons.Button;
-import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.label.Label;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.UserSnowflake;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.modals.Modal;
 import org.lukecreator.aw.data.AWBan;
 
-import java.awt.*;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 
@@ -68,7 +63,8 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
 
     @Override
     public void afterTicketChannelCreated(TextChannel channel) {
-        if (!this.isForDiscord) {
+        // the old "consent" form we used
+/*        if (!this.isForDiscord) {
             MessageEmbed embed = new EmbedBuilder()
                     .setTitle("Video Evidence Consent Form")
                     .setDescription("We have video evidence related to the incident that led to your ban. Do you consent to our team reviewing this footage as part of evaluating your dispute?")
@@ -81,33 +77,27 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
                                     Button.of(ButtonStyle.DANGER, "evidencedisagree", "I Disagree")
                             )
                     ).mention(UserSnowflake.fromId(this.ownerDiscordId)).queue();
-        }
+        }*/
     }
 
 
     @Override
     public Modal.Builder finishInputModal(Modal.Builder modal) {
         return modal.addComponents(
-                Label.of("What were you false-banned for?", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
+                Label.of("What were you false-banned for?", "Don't speculate. Tell us why you were banned.", TextInput.create("question-a", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .setPlaceholder(this.isForDiscord ?
-                                "Don't speculate. Tell us why you were banned from our Discord." :
-                                "Don't speculate. Tell us why you were banned from Ability Wars."
-                        )
                         .build()),
-                Label.of("What do you think happened?", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
+                Label.of("What do you think happened?", "Explain exactly what you think happened, in detail.", TextInput.create("question-b", TextInputStyle.PARAGRAPH)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .setPlaceholder("Explain exactly what you think happened, in detail.")
                         .build()),
-                Label.of("Agreement", TextInput.create("question-c", TextInputStyle.SHORT)
+                Label.of("Agreement", "Please swear that your answers are the full truth.", TextInput.create("question-c", TextInputStyle.SHORT)
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(MessageEmbed.VALUE_MAX_LENGTH)
-                        .setPlaceholder("Please swear that your answers are the full truth.")
                         .build())
         );
     }
@@ -117,6 +107,12 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
         eb.addField("What were you false-banned for?", this.questionA, false);
         eb.addField("What do you think happened?", this.questionB, false);
         eb.addField("Agreement (do you swear that your answers are the truth?)", this.questionC, false);
+
+        if (this.temporaryEvidence != null && this.temporaryEvidence.length > 0) {
+            String plural = this.temporaryEvidence.length == 1 ? "piece of evidence" : "pieces of evidence";
+            eb.addField("Evidence", "⚠️ Found " + this.temporaryEvidence.length + " " + plural + " related to this ban.", false);
+        }
+
         return eb;
     }
 
@@ -135,11 +131,21 @@ public class AWBanDisputeTicket extends AWUnbanTicket {
                 }
 
                 AWBan currentBan = this.temporaryInfoFulfillment.getMostRecentBan();
-                String currentBanReason = currentBan == null ? null : currentBan.reason();
-                if (isReasonBecauseOfAnticheatBan(currentBanReason)) {
-                    event.getHook().editOriginal("This ban cannot be disputed; the decision is final.").queue();
-                    onFinishedLoading.accept(false);
-                    return;
+                if (currentBan != null) {
+                    if (isReasonBecauseOfAnticheatBan(currentBan.reason())) {
+                        event.getHook().editOriginal("This ban cannot be disputed; the decision is final.").queue();
+                        onFinishedLoading.accept(false);
+                        return;
+                    }
+
+                    // get evidence stubs
+                    try {
+                        this.temporaryEvidence = currentBan.getLinkedEvidence();
+                    } catch (SQLException e) {
+                        event.getHook().editOriginal("Something went wrong while fetching evidence for the ban. Please report to the devs if this keeps happening:\n```\n" + e + "\n```").queue();
+                        onFinishedLoading.accept(false);
+                        return;
+                    }
                 }
             }
 

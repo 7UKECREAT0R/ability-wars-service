@@ -34,7 +34,6 @@ import org.lukecreator.aw.data.tickets.AWPlayerReportTicket;
 import org.lukecreator.aw.data.tickets.AWUnbanTicket;
 import org.lukecreator.aw.discord.commands.*;
 
-import java.awt.*;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -371,22 +370,6 @@ public class AbilityWarsBot extends ListenerAdapter {
                     String userFriendlyMessage = otherException.getMessage();
                     event.reply(userFriendlyMessage).setEphemeral(true).queue();
                 }
-                break;
-            }
-            case "evidenceagree": {
-                User u = event.getUser();
-                event.getChannel().sendMessageEmbeds(new EmbedBuilder().setTitle("Video Evidence Allowed").setAuthor(u.getName(), null, u.getEffectiveAvatarUrl()).setDescription("User agreed to the staff reviewing the video evidence tied to the incident.").setColor(Color.green).build()).queue();
-                event.deferEdit().queue();
-                event.getMessage().delete().queue(null, failure -> {
-                });
-                break;
-            }
-            case "evidencedisagree": {
-                User u = event.getUser();
-                event.getChannel().sendMessageEmbeds(new EmbedBuilder().setTitle("Video Evidence Disallowed").setAuthor(u.getName(), null, u.getEffectiveAvatarUrl()).setDescription("User does not consent to the staff reviewing the video evidence tied to the incident.").addField("Additional Information", "The user %s will further explain their reason for this decision below:".formatted(u.getAsMention()), false).setColor(Color.red).build()).mention(u).queue();
-                event.deferEdit().queue();
-                event.getMessage().delete().queue(null, failure -> {
-                });
                 break;
             }
             case "evidencedelete": {
