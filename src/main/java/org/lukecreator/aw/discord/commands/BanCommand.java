@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.lukecreator.aw.RobloxAPI;
+import org.lukecreator.aw.data.AWPlayer;
 import org.lukecreator.aw.data.AWTicket;
 import org.lukecreator.aw.data.AWTicketsManager;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
@@ -59,6 +60,12 @@ public class BanCommand extends BotCommand {
 
         e.deferReply().queue();
 
+        AWPlayer playerToBan = AWPlayer.loadFromDatabase(targetUser.userId(), false, true, true, false);
+        if (playerToBan.bans.isCurrentlyBanned()) {
+            e.getInteraction().getHook().editOriginal("The user [%s](%d) is already banned.".formatted(targetUser.username(), targetUser.userId())).queue();
+            return;
+        }
+
         AWPlayerReportTicket _ticket = null;
         if (e.getChannelType() == ChannelType.TEXT) {
             TextChannel channel = e.getChannel().asTextChannel();
@@ -80,9 +87,9 @@ public class BanCommand extends BotCommand {
                 .onFulfilled(ignored -> {
                     String successMessage = report != null ?
                             "Successfully banned user [%s](%s). Filing report in <#%d>.".formatted(targetUser.username(), targetUser.getProfileURL(), AWPlayerReportTicket.IN_GAME_PUNISHMENTS_CHANNEL) :
-                            "Successfully banned user [%s](%s).".formatted(targetUser.username(), targetUser.getProfileURL());
+                            "Successfully banned user [%s](%s). Unable to auto-file report.".formatted(targetUser.username(), targetUser.getProfileURL());
                     e.getInteraction().getHook().editOriginal(successMessage).queue();
-                    
+
                     if (report != null)
                         AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report).queue();
                 })

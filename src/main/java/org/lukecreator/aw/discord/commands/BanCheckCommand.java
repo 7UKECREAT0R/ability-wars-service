@@ -84,6 +84,10 @@ public class BanCheckCommand extends BotCommand {
 
             banEntry.append("`\n-# ")
                     .append(ban.displayReasonOrDefault());
+
+            if (ban.linkedTicketId != null)
+                banEntry.append("\n-# This ban is linked to ticket `").append(ban.linkedTicketId).append("`");
+
             if (i > 0)
                 banEntry.append("\n");
 
@@ -144,8 +148,8 @@ public class BanCheckCommand extends BotCommand {
                     evidenceString.append("Found ").append(evidence.length).append(" evidence links:");
                     for (AWEvidence ev : evidence) {
                         String details = ev.details == null ? null : ev.details
-                                .replaceAll("\n{2,}", "\n") // remove multiple newlines back-to-back
-                                .replace("\n", "\n-# ");    // make each extra line smaller using Markdown
+                                                                     .replaceAll("\n{2,}", "\n") // remove multiple newlines back-to-back
+                                                                     .replace("\n", "\n-# ");    // make each extra line smaller using Markdown
 
                         if (ev.hasTimestamp())
                             evidenceString.append("\n- (").append(ev.timestampString()).append(") ").append(ev.url);
@@ -154,6 +158,13 @@ public class BanCheckCommand extends BotCommand {
 
                         if (details != null && !details.isBlank())
                             evidenceString.append("\n-# ").append(details);
+
+                        try {
+                            Long[] linkedTickets = Links.TicketEvidenceLinks.getTicketIDsLinkedToEvidence(ev.evidenceId);
+                            for (Long ticketId : linkedTickets)
+                                evidenceString.append("\n-# Originating ticket ID: ").append(ticketId);
+                        } catch (SQLException ignored) {
+                        }
                     }
                     eb.addField("Evidence", evidenceString.toString(), false);
                 }

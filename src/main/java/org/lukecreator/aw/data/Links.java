@@ -137,6 +137,34 @@ public class Links {
                 return ticketList.toArray(new AWTicket[0]);
             }
         }
+
+        /**
+         * Retrieves an array of ticket IDs linked to a specific piece of evidence.
+         * <p>
+         * This method queries the {@code ticket_evidence_link} table to retrieve the ticket IDs
+         * associated with the given evidence ID, then loads the corresponding ticket entries
+         * from the database.
+         *
+         * @param evidenceId The unique identifier of the evidence whose linked tickets are to be retrieved.
+         * @return An array of IDs of tickets linked to the specified evidence.
+         * If no tickets are linked to the given evidence, an empty array is returned.
+         * @throws SQLException If an error occurs while querying the database.
+         */
+        public static Long[] getTicketIDsLinkedToEvidence(long evidenceId) throws SQLException {
+            var statement = AWDatabase.connection.prepareStatement("""
+                    SELECT ticket_id FROM ticket_evidence_link
+                    WHERE evidence_id = ?""");
+            statement.setLong(1, evidenceId);
+            try (ResultSet results = statement.executeQuery()) {
+                List<Long> ticketList = new ArrayList<>();
+                while (results.next()) {
+                    long ticketId = results.getLong("ticket_id");
+                    ticketList.add(ticketId);
+                }
+
+                return ticketList.toArray(new Long[0]);
+            }
+        }
     }
 
     /**
