@@ -269,7 +269,8 @@ public class ActionModals {
 
         // file a physical report in the #in-game-punishments
         if (ticket.hasEvidence()) {
-            String physicalReport = AWPlayerReportTicket.buildInGamePunishmentsRecord(event.getUser(), ticket.getAccusedUser(), ticket.getRuleBroken(), exploit, ticket.getEvidenceURL());
+            String[] allEvidenceURLs = ticket.retrieveEvidenceURLs();
+            String physicalReport = AWPlayerReportTicket.buildInGamePunishmentsRecord(event.getUser(), ticket.getAccusedUser(), ticket.getRuleBroken(), exploit, allEvidenceURLs);
             AWPlayerReportTicket.sendInGamePunishmentsMessage(event.getJDA(), physicalReport).queue();
         }
     }

@@ -79,9 +79,9 @@ public class BanCommand extends BotCommand {
         final Long evidenceId = ticket == null ? null : ticket.getEvidenceId();
 
         // build the #in-game-punishments message
-        final String evidenceURL = ticket == null ? null : ticket.getEvidenceURL();
-        final String report = evidenceURL == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
-                (e.getUser(), targetUser, reason, "Manually banned", evidenceURL);
+        final String[] evidenceURLs = ticket == null ? null : ticket.retrieveEvidenceURLs();
+        final String report = evidenceURLs == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
+                (e.getUser(), targetUser, reason, "Manually banned", evidenceURLs);
 
         PendingRequest request = new BanRequest(PendingRequest.getNextRequestId(), targetUser.userId(), responsibleModerator, reason, true, 0L, evidenceId, ticketId)
                 .onFulfilled(ignored -> {

@@ -94,15 +94,15 @@ public class AWPlayerReportTicket extends AWTicket {
      * @param userBanned     The user that was banned.
      * @param ruleBrokenName The name of the rule that was broken.
      * @param exploitName    The name of the exploit that was used.
-     * @param evidenceURL    The URL to the evidence.
+     * @param evidenceURLs   The URLs to the evidence attached to the ban.
      * @return A string organizing all the input information into a nicely formatted string.
      */
-    public static String buildInGamePunishmentsRecord(User bannedBy, RobloxAPI.User userBanned, String ruleBrokenName, String exploitName, String evidenceURL) {
+    public static String buildInGamePunishmentsRecord(User bannedBy, RobloxAPI.User userBanned, String ruleBrokenName, String exploitName, String[] evidenceURLs) {
         return userBanned.username() +
                 " - (" + userBanned.userId() + ") - " +
                 "[Roblox Profile](" + userBanned.getProfileURL() + ") - Banned by " + bannedBy.getAsMention() + '\n' +
                 ruleBrokenName + " - " + exploitName + '\n' +
-                evidenceURL;
+                String.join("\n", evidenceURLs);
     }
 
     /**
@@ -387,6 +387,21 @@ public class AWPlayerReportTicket extends AWTicket {
         });
 
         return "Added evidence successfully.";
+    }
+
+    /**
+     * Retrieves an array of URLs associated with the evidence linked to a specific ticket.
+     *
+     * @return An array of strings where each string represents the URL of a piece of evidence
+     * linked to the ticket.
+     * @throws SQLException If a database access error occurs while retrieving the evidence.
+     */
+    public String[] retrieveEvidenceURLs() throws SQLException {
+        AWEvidence[] allEvidence = Links.TicketEvidenceLinks.getEvidenceLinkedToTicket(this.id);
+        String[] allEvidenceURLs = new String[allEvidence.length];
+        for (int i = 0; i < allEvidence.length; i++)
+            allEvidenceURLs[i] = allEvidence[i].url;
+        return allEvidenceURLs;
     }
 
     /**
