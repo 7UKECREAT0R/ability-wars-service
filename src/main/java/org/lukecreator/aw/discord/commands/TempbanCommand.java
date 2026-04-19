@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.lukecreator.aw.RobloxAPI;
+import org.lukecreator.aw.data.AWPlayer;
 import org.lukecreator.aw.data.AWTicket;
 import org.lukecreator.aw.data.AWTicketsManager;
 import org.lukecreator.aw.data.DiscordRobloxLinks;
@@ -62,20 +63,42 @@ public class TempbanCommand extends BotCommand {
             return;
         }
 
-        AWTicket ticket = null;
-        if (e.getChannelType() == ChannelType.TEXT) {
-            TextChannel channel = e.getChannel().asTextChannel();
-            ticket = AWTicketsManager.getTicketFromCacheByDiscordChannel(channel);
+        e.deferReply().queue();
+
+        AWPlayer playerToBan = AWPlayer.loadFromDatabase(targetUser.userId(), false, true, true, false);
+        if (playerToBan.bans.isCurrentlyBanned()) {
+            e.getInteraction().getHook().editOriginal("The user [%s](%d) is already banned.".formatted(targetUser.username(), targetUser.userId())).queue();
+            return;
         }
 
-        Long ticketId = ticket == null ? null : ticket.id;
-        Long evidenceId = ticket == null ? null : (ticket instanceof AWPlayerReportTicket reportTicket) ?
-                reportTicket.getEvidenceId() : null;
+        AWPlayerReportTicket _ticket = null;
+        if (e.getChannelType() == ChannelType.TEXT) {
+            TextChannel channel = e.getChannel().asTextChannel();
+            AWTicket __ticket = AWTicketsManager.getTicketFromCacheByDiscordChannel(channel);
+            if (__ticket instanceof AWPlayerReportTicket t)
+                _ticket = t;
+        }
+        final AWPlayerReportTicket ticket = _ticket;
 
-        e.deferReply().queue();
+        final Long ticketId = ticket == null ? null : ticket.id;
+        final Long evidenceId = ticket == null ? null : ticket.getEvidenceId();
+
+        // build the #in-game-punishments message
+        final String evidenceURL = ticket == null ? null : ticket.getEvidenceURL();
+        final String report = evidenceURL == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
+                (e.getUser(), targetUser, reason, "Manually temp-banned for " + days + " days", evidenceURL);
+
         PendingRequest request = new BanRequest(PendingRequest.getNextRequestId(), targetUser.userId(), responsibleModerator, reason, false, durationMs, evidenceId, ticketId)
-                .onFulfilled(ignored -> e.getInteraction().getHook().editOriginal("Successfully banned user [" + targetUser.username() + "](" + targetUser.getProfileURL() + ") for " + days + " days.").queue())
-                .onNoPermission(() -> e.getInteraction().getHook().editOriginal("You don't have permission to temp-ban users in-game.").queue());
+                .onFulfilled(ignored -> {
+                    String successMessage = report != null ?
+                            "Successfully temp-banned user [%s](%s). Filing report in <#%d>.".formatted(targetUser.username(), targetUser.getProfileURL(), AWPlayerReportTicket.IN_GAME_PUNISHMENTS_CHANNEL) :
+                            "Successfully temp-banned user [%s](%s). Unable to auto-file report.".formatted(targetUser.username(), targetUser.getProfileURL());
+                    e.getInteraction().getHook().editOriginal(successMessage).queue();
+
+                    if (report != null)
+                        AWPlayerReportTicket.sendInGamePunishmentsMessage(e.getJDA(), report).queue();
+                })
+                .onNoPermission(() -> e.getInteraction().getHook().editOriginal("You don't have permission to ban users in-game.").queue());
         PendingRequests.add(request);
     }
 }
