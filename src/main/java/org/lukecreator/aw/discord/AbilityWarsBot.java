@@ -270,7 +270,7 @@ public class AbilityWarsBot extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if (!event.isFromGuild()) {
+        if (!event.isFromGuild() || event.getGuild() == null) {
             event.reply("This bot can only be used in a server.").setEphemeral(true).queue();
             return;
         }
