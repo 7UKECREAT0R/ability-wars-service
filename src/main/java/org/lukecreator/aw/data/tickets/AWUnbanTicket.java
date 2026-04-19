@@ -717,14 +717,14 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "blacklistlying": {
                 try {
                     event.deferEdit().queue();
-                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for lying in their appeal");
+                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for lying in their appeal (ticket " + this.id + ")");
                     this.closeAndBlacklist(event.getJDA(), clickedUser,
                             this.isForDiscord ?
                                     "Your Discord account <@%d> is ineligible for appeal.".formatted(this.discordIdToUnban) :
                                     this.robloxUserToUnban == null ?
                                             "Your Roblox account [%d](https://www.roblox.com/users/%1$d/profile) is ineligible for appeal.".formatted(this.robloxIdToUnban) :
                                             "Your Roblox account [%s](%s) is ineligible for appeal.".formatted(this.robloxUserToUnban.username(), this.robloxUserToUnban.getProfileURL()),
-                            "lying in " + (this.isAppeal() ? "appeal" : "dispute"), null);
+                            "lying in " + (this.isAppeal() ? "appeal" : "dispute" + " (ticket " + this.id + ")"), null);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -733,12 +733,12 @@ public abstract class AWUnbanTicket extends AWTicket {
             case "blacklistshared": {
                 try {
                     event.deferEdit().queue();
-                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for shared account.");
+                    this.sendTranscriptsMessage(event.getJDA(), clickedUser, "Blacklisted for shared account. (ticket " + this.id + ")");
                     this.closeAndBlacklist(event.getJDA(), clickedUser,
                             this.robloxUserToUnban == null ?
                                     "Your Roblox account [%d](https://www.roblox.com/users/%1$d/profile) is ineligible for appeal due to having shared the account with another person.".formatted(this.robloxIdToUnban) :
                                     "Your Roblox account [%s](%s) is ineligible for appeal due to having shared the account with another person.".formatted(this.robloxUserToUnban.username(), this.robloxUserToUnban.getProfileURL()),
-                            "shared account", null);
+                            "shared account (ticket " + this.id + ")", null);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }

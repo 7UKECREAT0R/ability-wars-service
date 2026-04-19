@@ -649,10 +649,10 @@ public class ActionModals {
         event.deferEdit().queue();
 
         // blacklist the user
-        ticket.closeAndBlacklist(event.getJDA(), closedBy, closeReason, blacklistReason, null);
+        ticket.closeAndBlacklist(event.getJDA(), closedBy, closeReason, blacklistReason + " Ticket ID: " + ticket.id, null);
 
         // file a physical report in the #transcripts channel
-        String actionDescription = "Blacklisted for `%s`".formatted(blacklistReason.replace("`", ""));
+        String actionDescription = "Blacklisted for `%s` (ticket %d)".formatted(blacklistReason.replace("`", ""), ticket.id);
         ticket.sendTranscriptsMessage(event.getJDA(), closedBy, actionDescription);
     }
 }
