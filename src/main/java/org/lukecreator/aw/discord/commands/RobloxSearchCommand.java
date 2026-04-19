@@ -51,7 +51,7 @@ public class RobloxSearchCommand extends BotCommand {
                 .setDescription("Search results for \"" + username + "\"")
                 .setColor(callingUser.getColors().getPrimary());
 
-        eb.addField("Username", user.username(), true);
+        eb.addField("Username", "[" + user.username() + "](" + user.getProfileURL() + ")", true);
         eb.addField("ID", String.valueOf(user.userId()), true);
         String bio = user.bio();
         if (bio != null && !bio.isBlank())
