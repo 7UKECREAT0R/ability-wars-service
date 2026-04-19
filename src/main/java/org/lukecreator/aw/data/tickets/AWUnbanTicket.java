@@ -817,7 +817,7 @@ public abstract class AWUnbanTicket extends AWTicket {
                     String[] evidenceLines = new String[this.temporaryEvidence.length];
                     for (int i = 0; i < this.temporaryEvidence.length; i++) {
                         AWEvidence evidence = this.temporaryEvidence[i];
-                        String line = "- ⚠️ " + evidence.evidenceId;
+                        String line = "- ⚠️ [" + evidence.evidenceId + "](" + evidence.url + ")";
                         if (!evidence.details.isBlank())
                             line = line.concat("\n-# ").concat(evidence.details);
                         evidenceLines[i] = line;
