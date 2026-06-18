@@ -163,7 +163,8 @@ public class BanCheckCommand extends BotCommand {
                             Long[] linkedTickets = Links.TicketEvidenceLinks.getTicketIDsLinkedToEvidence(ev.evidenceId);
                             for (Long ticketId : linkedTickets)
                                 evidenceString.append("\n-# Originating ticket ID: ").append(ticketId);
-                        } catch (SQLException ignored) {
+                        } catch (SQLException sqlE) {
+                            sqlE.printStackTrace();
                         }
                     }
                     eb.addField("Evidence", evidenceString.toString(), false);
