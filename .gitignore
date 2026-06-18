@@ -13,6 +13,7 @@ icon.png
 # machine-specific build stuff
 unzip-move-docsite.ps1
 webHelpAWD2-all.zip
+/INTENT_USE_CASES.md
 
 ### IntelliJ IDEA ###
 .idea/
