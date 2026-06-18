@@ -810,7 +810,7 @@ public abstract class AWTicket {
         statement.setLong(1, this.id);
         statement.executeUpdate();
     }
-    
+
     /**
      * A type of ticket.
      */
