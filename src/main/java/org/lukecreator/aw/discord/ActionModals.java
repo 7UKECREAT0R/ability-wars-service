@@ -1,6 +1,7 @@
 package org.lukecreator.aw.discord;
 
 import net.dv8tion.jda.api.components.label.Label;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.entities.User;
@@ -83,6 +84,45 @@ public class ActionModals {
         if (args.length > 0)
             return ACTION_ID_PREFIX + actionId + "_" + ticketId + "_" + String.join("_", args);
         return ACTION_ID_PREFIX + actionId + "_" + ticketId;
+    }
+
+    /**
+     * Builds the quick-pick exploit name dropdown shown alongside the free-text exploit field in ban/tempban modals.
+     */
+    private static Label quickExploitSelectLabel() {
+        StringSelectMenu.Builder menu = StringSelectMenu.create("exploit-quick")
+                .setPlaceholder("Pick a common reason (optional)")
+                .setRequiredRange(0, 1);
+        for (String reason : BanAppealMessages.QUICK_REASONS)
+            menu.addOption(reason, reason);
+        return Label.of("Quick Reason", menu.build());
+    }
+
+    /**
+     * Builds the free-text fallback exploit name field, used when the quick reason dropdown doesn't have what's needed.
+     */
+    private static Label customExploitInputLabel() {
+        return Label.of("Exploit Name (if not listed above)", TextInput.create("exploit", TextInputStyle.SHORT)
+                .setPlaceholder("killaura, fly, speed, teleport, etc...")
+                .setRequired(false)
+                .build());
+    }
+
+    /**
+     * Reads the moderator's chosen exploit name from a modal built with {@link #quickExploitSelectLabel()} and
+     * {@link #customExploitInputLabel()}, preferring the quick-pick dropdown over the free-text field. Returns
+     * {@code null} if neither was filled in.
+     */
+    private static String resolveExploitName(ModalInteractionEvent event) {
+        ModalMapping quickMapping = event.getValue("exploit-quick");
+        if (quickMapping != null && !quickMapping.getAsStringList().isEmpty())
+            return quickMapping.getAsStringList().get(0);
+
+        ModalMapping textMapping = event.getValue("exploit");
+        if (textMapping != null && !textMapping.getAsString().isBlank())
+            return textMapping.getAsString();
+
+        return null;
     }
 
     public static void sendToImplementation(String actionId, String[] args, ModalInteractionEvent event, AWTicket ticket) throws SQLException {
@@ -215,26 +255,25 @@ public class ActionModals {
         long reasonEncoded = encodeString(presetReason);
         return Modal
                 .create(createId(ACTION_CLOSE_AND_BAN, ticket.id, String.valueOf(reasonEncoded)), "Close Ticket and Ban")
-                .addComponents(Label.of("Exploit Name", TextInput.create("exploit", TextInputStyle.SHORT)
-                        .setPlaceholder("killaura, fly, speed, teleport, etc...")
-                        .setRequired(true)
-                        .build()))
+                .addComponents(quickExploitSelectLabel())
+                .addComponents(customExploitInputLabel())
                 .build();
     }
 
     private static void impl_closeTicketAndBanWithPresetReason(ModalInteractionEvent event, AWTicket _ticket, long presetReasonEncoded) throws SQLException {
         final AWPlayerReportTicket ticket = (AWPlayerReportTicket) _ticket;
-        ModalMapping exploitMapping = event.getValue("exploit");
-        if (exploitMapping == null) {
-            event.reply("Strange error: missing field in the modal response?").queue();
+        final String exploit = resolveExploitName(event);
+        if (exploit == null) {
+            event.reply("Pick a quick reason or type an exploit name.").setEphemeral(true).queue();
             return;
         }
-        final String exploit = exploitMapping.getAsString();
         String presetReason = decodeString(presetReasonEncoded);
         if (presetReason == null) {
             event.reply("Strange error: lost the pre-set reason?").queue();
             return;
         }
+        // full appeal message (reason + 6-month appeal date), shown wherever the ban's reason is surfaced
+        final String banReason = BanAppealMessages.generate(exploit);
         User closedBy = event.getUser();
         Long _closedByRobloxId = DiscordRobloxLinks.robloxIdFromDiscordId(closedBy.getIdLong());
 
@@ -254,7 +293,7 @@ public class ActionModals {
                 PendingRequest.getNextRequestId(),
                 toBanId,
                 closedByRobloxId,
-                exploit,
+                banReason,
                 true,
                 0L,
                 ticket.getEvidenceId(),
@@ -278,10 +317,8 @@ public class ActionModals {
     public static Modal closeTicketAndBanWithCustomReason(AWPlayerReportTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_BAN_WITH_REASON, ticket.id), "Close Ticket and Ban")
-                .addComponents(Label.of("Ban Reason", TextInput.create("exploit", TextInputStyle.SHORT)
-                        .setPlaceholder("killaura, fly, speed, teleport, etc...")
-                        .setRequired(true)
-                        .build()))
+                .addComponents(quickExploitSelectLabel())
+                .addComponents(customExploitInputLabel())
                 .addComponents(Label.of("Ticket Close Reason", TextInput.create("reason", TextInputStyle.SHORT)
                         .setPlaceholder("e.g.: Banned, but please try to record in a higher resolution next time!")
                         .setRequired(true)
@@ -291,15 +328,16 @@ public class ActionModals {
 
     private static void impl_closeTicketAndBanWithCustomReason(ModalInteractionEvent event, AWTicket _ticket) throws SQLException {
         final AWPlayerReportTicket ticket = (AWPlayerReportTicket) _ticket;
-        ModalMapping exploitMapping = event.getValue("exploit");
+        final String exploit = resolveExploitName(event);
         ModalMapping reasonMapping = event.getValue("reason");
-        if (exploitMapping == null || reasonMapping == null) {
-            event.reply("Strange error: missing field in the modal response?").queue();
+        if (exploit == null || reasonMapping == null) {
+            event.reply("Pick a quick reason or type an exploit name.").setEphemeral(true).queue();
             return;
         }
 
-        final String exploit = exploitMapping.getAsString();
         final String reason = reasonMapping.getAsString();
+        // full appeal message (reason + 6-month appeal date), shown wherever the ban's reason is surfaced
+        final String banReason = BanAppealMessages.generate(exploit);
 
         User closedBy = event.getUser();
         Long _closedByRobloxId = DiscordRobloxLinks.robloxIdFromDiscordId(closedBy.getIdLong());
@@ -320,7 +358,7 @@ public class ActionModals {
                 PendingRequest.getNextRequestId(),
                 toBanId,
                 closedByRobloxId,
-                exploit,
+                banReason,
                 true,
                 0L,
                 ticket.getEvidenceId(),
