@@ -12,6 +12,7 @@ import org.lukecreator.aw.data.DiscordRobloxLinks;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.SQLException;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -114,9 +116,27 @@ public class RobloxAPI {
 
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200)
+            final String body = response.body();
+
+            if (response.statusCode() == 429) {
+                HttpHeaders headers = response.headers();
+                Optional<String> ratelimitResetHeader = headers.firstValue("x-ratelimit-reset");
+                if (ratelimitResetHeader.isPresent()) {
+                    long rateLimitResetSeconds = Long.parseLong(ratelimitResetHeader.get());
+                    System.out.println("Roblox API rate limit reached. Waiting " + (rateLimitResetSeconds) + " seconds before retrying.");
+                    try {
+                        Thread.sleep(rateLimitResetSeconds * 1001);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    return getUserById(userId);
+                }
+            }
+            if (response.statusCode() != 200) {
                 return null;
-            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            }
+
+            JsonObject json = JsonParser.parseString(body).getAsJsonObject();
             return new User(
                     userId,
                     json.get("name").getAsString(),
@@ -167,9 +187,27 @@ public class RobloxAPI {
 
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 429) {
+                HttpHeaders headers = response.headers();
+                Optional<String> ratelimitResetHeader = headers.firstValue("x-ratelimit-reset");
+                if (ratelimitResetHeader.isPresent()) {
+                    long rateLimitResetSeconds = Long.parseLong(ratelimitResetHeader.get());
+                    System.out.println("Roblox API rate limit reached. Waiting " + (rateLimitResetSeconds) + " seconds before retrying.");
+                    try {
+                        Thread.sleep(rateLimitResetSeconds * 1001);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    return getUserByCurrentUsername(username);
+                }
+                return null;
+            }
             if (response.statusCode() != 200)
                 return null;
-            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+
+            String body = response.body();
+            JsonObject json = JsonParser.parseString(body).getAsJsonObject();
             JsonArray userList = json.getAsJsonArray("data").getAsJsonArray();
             long chosenUserId = 0L;
 

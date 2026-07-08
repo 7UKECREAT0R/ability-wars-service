@@ -586,8 +586,12 @@ public class AWPlayerReportTicket extends AWTicket {
         this.collectRelatedTickets(false);
 
         // load player
-        if (this.accusedUser == null)
+        if (this.accusedUser == null) {
             this.accusedUser = RobloxAPI.getUserByCurrentUsername(this.accusedUsername);
+            if (this.accusedUser == null) {
+                System.out.println("Failed to retrieve reported user " + this.accusedUsername + " from Roblox API while loading existing tickets from disk. This will cause the ticket to fail to work correctly.");
+            }
+        }
 
         // try to load evidence ID
         try {

@@ -116,7 +116,7 @@ public class AbilityWarsBot extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
-        System.out.println("Ability Warden is ready to roll!");
+        System.out.println("Ability Warden is ready to roll! Loading tickets from database...");
         try {
             AWTicketsManager.loadTicketsFromDatabase();
         } catch (SQLException e) {
