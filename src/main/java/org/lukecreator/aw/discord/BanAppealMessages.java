@@ -13,7 +13,7 @@ import java.util.Locale;
 public class BanAppealMessages {
     public static final List<String> QUICK_REASONS = List.of(
             "Flying", "Speed", "Teleport", "Autofarm", "Flinging",
-            "Follow Script", "Jump Power", "Antivoid", "Reach", "Bad Emote Script"
+            "Follow Script", "Jump Power", "Antivoid", "Reach", "Offensive Engineer Builds"
     );
 
     private static final String TEMPLATE =
