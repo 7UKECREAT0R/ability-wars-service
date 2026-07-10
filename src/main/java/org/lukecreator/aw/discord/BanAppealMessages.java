@@ -13,11 +13,11 @@ import java.util.Locale;
 public class BanAppealMessages {
     public static final List<String> QUICK_REASONS = List.of(
             "Flying", "Speed", "Teleport", "Autofarm", "Flinging",
-            "Follow Script", "Jump Power", "Antivoid", "Reach", "Bad Emote Script"
+            "Follow Script", "Jump Power", "Antivoid", "Reach", "Offensive Engineer Builds"
     );
 
     private static final String TEMPLATE =
-            "You have been banned for %s based on video proof submitted to the moderation team. " +
+            "%s based on video proof submitted to the moderation team. " +
                     "You may appeal on or after %s. If you believe the evidence is incorrect, or if this was a bug, " +
                     "you may dispute it any time or request to review the video. To appeal or review evidence, use the social links below the game page " +
                     "and please be honest.";
