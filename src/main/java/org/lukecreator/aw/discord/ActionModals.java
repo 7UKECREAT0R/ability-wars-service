@@ -94,7 +94,19 @@ public class ActionModals {
                 .setPlaceholder("Pick a common reason (optional)")
                 .setRequiredRange(0, 1);
         for (String reason : BanAppealMessages.QUICK_REASONS)
-            menu.addOption(reason, reason);
+            menu = menu.addOption(reason, reason);
+        return Label.of("Quick Reason", menu.build());
+    }
+
+    /**
+     * Builds the quick-pick bug-abuse reason dropdown shown alongside the free-text exploit field in tempban modals.
+     */
+    private static Label quickTempbanReasonSelectLabel() {
+        StringSelectMenu.Builder menu = StringSelectMenu.create("exploit-quick")
+                .setPlaceholder("Pick a common reason (optional)")
+                .setRequiredRange(0, 1);
+        for (String reason : BanAppealMessages.QUICK_TEMPBAN_REASONS)
+            menu = menu.addOption(reason, reason);
         return Label.of("Quick Reason", menu.build());
     }
 
@@ -123,6 +135,15 @@ public class ActionModals {
             return textMapping.getAsString();
 
         return null;
+    }
+
+    /**
+     * Returns whether the moderator picked a reason from the quick-pick dropdown, as opposed to typing a free-text
+     * reason, in a modal built with {@link #quickExploitSelectLabel()}/{@link #quickTempbanReasonSelectLabel()}.
+     */
+    private static boolean isQuickReasonChosen(ModalInteractionEvent event) {
+        ModalMapping quickMapping = event.getValue("exploit-quick");
+        return quickMapping != null && !quickMapping.getAsStringList().isEmpty();
     }
 
     public static void sendToImplementation(String actionId, String[] args, ModalInteractionEvent event, AWTicket ticket) throws SQLException {
@@ -387,10 +408,8 @@ public class ActionModals {
         long reasonEncoded = encodeString(presetReason);
         return Modal
                 .create(createId(ACTION_CLOSE_AND_TEMPBAN, ticket.id, String.valueOf(reasonEncoded)), "Close Ticket and Temporarily Ban")
-                .addComponents(Label.of("Exploit Name", TextInput.create("exploit", TextInputStyle.SHORT)
-                        .setPlaceholder("killaura, fly, speed, teleport, etc...")
-                        .setRequired(true)
-                        .build()))
+                .addComponents(quickTempbanReasonSelectLabel())
+                .addComponents(customExploitInputLabel())
                 .addComponents(Label.of("Duration (days)", TextInput.create("duration", TextInputStyle.SHORT)
                         .setRequired(true)
                         .build()))
@@ -399,14 +418,19 @@ public class ActionModals {
 
     private static void impl_closeTicketAndTempbanWithPresetReason(ModalInteractionEvent event, AWTicket _ticket, long presetReasonEncoded) throws SQLException {
         final AWPlayerReportTicket ticket = (AWPlayerReportTicket) _ticket;
-        ModalMapping exploitMapping = event.getValue("exploit");
+        final String exploit = resolveExploitName(event);
         ModalMapping durationMapping = event.getValue("duration");
-        if (exploitMapping == null || durationMapping == null) {
+        if (exploit == null) {
+            event.reply("Pick a quick reason or type an exploit name.").setEphemeral(true).queue();
+            return;
+        }
+        if (durationMapping == null) {
             event.reply("Strange error: missing field in the modal response?").queue();
             return;
         }
-        final String exploit = exploitMapping.getAsString();
         final String duration = durationMapping.getAsString();
+        // quick-picked bug-abuse reasons get the "reset and don't abuse" message; free-typed reasons stay as-is
+        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.generateBugAbuseMessage(exploit) : exploit;
 
         try {
             long daysDuration = Long.parseLong(duration);
@@ -434,7 +458,7 @@ public class ActionModals {
                     PendingRequest.getNextRequestId(),
                     toBanId,
                     closedByRobloxId,
-                    exploit,
+                    banReason,
                     false,
                     daysDuration * 86400000L,
                     ticket.getEvidenceId(),
@@ -467,10 +491,8 @@ public class ActionModals {
     public static Modal closeTicketAndTempbanWithCustomReason(AWPlayerReportTicket ticket) {
         return Modal
                 .create(createId(ACTION_CLOSE_AND_TEMPBAN_WITH_REASON, ticket.id), "Close Ticket and Ban")
-                .addComponents(Label.of("Ban Reason", TextInput.create("exploit", TextInputStyle.SHORT)
-                        .setPlaceholder("killaura, fly, speed, teleport, etc...")
-                        .setRequired(true)
-                        .build()))
+                .addComponents(quickTempbanReasonSelectLabel())
+                .addComponents(customExploitInputLabel())
                 .addComponents(Label.of("Ticket Close Reason", TextInput.create("reason", TextInputStyle.SHORT)
                         .setPlaceholder("e.g.: Banned, but please try to record in a higher resolution next time!")
                         .setRequired(true)
@@ -483,16 +505,21 @@ public class ActionModals {
 
     private static void impl_closeTicketAndTempbanWithCustomReason(ModalInteractionEvent event, AWTicket _ticket) throws SQLException {
         final AWPlayerReportTicket ticket = (AWPlayerReportTicket) _ticket;
-        ModalMapping exploitMapping = event.getValue("exploit");
+        final String exploit = resolveExploitName(event);
         ModalMapping reasonMapping = event.getValue("reason");
         ModalMapping durationMapping = event.getValue("duration");
-        if (exploitMapping == null || reasonMapping == null || durationMapping == null) {
+        if (exploit == null) {
+            event.reply("Pick a quick reason or type an exploit name.").setEphemeral(true).queue();
+            return;
+        }
+        if (reasonMapping == null || durationMapping == null) {
             event.reply("Strange error: missing field in the modal response?").queue();
             return;
         }
-        final String exploit = exploitMapping.getAsString();
         final String reason = reasonMapping.getAsString();
         final String duration = durationMapping.getAsString();
+        // quick-picked bug-abuse reasons get the "reset and don't abuse" message; free-typed reasons stay as-is
+        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.generateBugAbuseMessage(exploit) : exploit;
 
         try {
             long daysDuration = Long.parseLong(duration);
@@ -515,7 +542,7 @@ public class ActionModals {
                     PendingRequest.getNextRequestId(),
                     toBanId,
                     closedByRobloxId,
-                    exploit,
+                    banReason,
                     false,
                     daysDuration * 86400000L,
                     ticket.getEvidenceId(),
