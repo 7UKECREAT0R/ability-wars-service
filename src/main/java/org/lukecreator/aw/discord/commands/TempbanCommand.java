@@ -86,7 +86,7 @@ public class TempbanCommand extends BotCommand {
         // build the #in-game-punishments message
         final String[] evidenceURLs = ticket == null ? null : ticket.retrieveEvidenceURLs();
         final String report = evidenceURLs == null ? null : AWPlayerReportTicket.buildInGamePunishmentsRecord
-                (e.getUser(), targetUser, reason, "Manually temp-banned for " + days + " days", evidenceURLs);
+                (e.getUser(), targetUser, reason, "Manually temp-banned for " + days + " days", ticketId, evidenceURLs);
 
         PendingRequest request = new BanRequest(PendingRequest.getNextRequestId(), targetUser.userId(), responsibleModerator, reason, false, durationMs, evidenceId, ticketId)
                 .onFulfilled(ignored -> {
