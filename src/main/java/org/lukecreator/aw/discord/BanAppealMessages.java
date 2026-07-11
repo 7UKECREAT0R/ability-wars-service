@@ -17,9 +17,9 @@ public class BanAppealMessages {
     );
 
     private static final String TEMPLATE =
-            "%s based on video proof submitted to the moderation team. " +
-                    "You may appeal on or after %s. If you believe the evidence is incorrect, or if this was a bug, " +
-                    "you may dispute it any time or request to review the video. To appeal or review evidence, use the social links below the game page " +
+            "%s based on evidence submitted to and reviewed by the moderation team. " +
+                    "You may appeal on or after %s. If you believe this action was made in error, you may submit a dispute at any time. " +
+                    "The moderation team will review your claim before making a final decision. To submit a dispute or appeal, use the social links below the game page, " +
                     "and please be honest.";
 
     private static final DateTimeFormatter APPEAL_DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
