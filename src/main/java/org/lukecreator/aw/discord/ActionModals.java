@@ -105,6 +105,7 @@ public class ActionModals {
     private static Label quickTempbanReasonSelectLabel() {
         StringSelectMenu.Builder menu = StringSelectMenu.create("exploit-quick")
                 .setPlaceholder("Pick a common reason (optional)")
+                .setRequired(false)
                 .setRequiredRange(0, 1);
         for (String reason : BanAppealMessages.QUICK_TEMPBAN_REASONS)
             menu = menu.addOption(reason, reason);
