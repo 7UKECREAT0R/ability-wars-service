@@ -94,14 +94,16 @@ public class AWPlayerReportTicket extends AWTicket {
      * @param userBanned     The user that was banned.
      * @param ruleBrokenName The name of the rule that was broken.
      * @param exploitName    The name of the exploit that was used.
+     * @param ticketId       The ID of the ticket this ban originated from, if any.
      * @param evidenceURLs   The URLs to the evidence attached to the ban.
      * @return A string organizing all the input information into a nicely formatted string.
      */
-    public static String buildInGamePunishmentsRecord(User bannedBy, RobloxAPI.User userBanned, String ruleBrokenName, String exploitName, String[] evidenceURLs) {
+    public static String buildInGamePunishmentsRecord(User bannedBy, RobloxAPI.User userBanned, String ruleBrokenName, String exploitName, Long ticketId, String[] evidenceURLs) {
         return userBanned.username() +
                 " - (" + userBanned.userId() + ") - " +
                 "[Roblox Profile](" + userBanned.getProfileURL() + ") - Banned by " + bannedBy.getAsMention() + '\n' +
                 ruleBrokenName + " - " + exploitName + '\n' +
+                (ticketId != null ? "-# Ticket #" + ticketId + '\n' : "") +
                 String.join("\n", evidenceURLs);
     }
 
