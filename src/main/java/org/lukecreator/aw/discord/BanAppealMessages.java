@@ -2,8 +2,11 @@ package org.lukecreator.aw.discord;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Generates the ban appeal message shown to reported users, and holds the quick-pick exploit
@@ -13,13 +16,29 @@ import java.util.Locale;
 public class BanAppealMessages {
     public static final List<String> QUICK_REASONS = List.of(
             "Flying", "Speed", "Teleport", "Autofarm", "Flinging",
-            "Follow Script", "Jump Power", "Antivoid", "Reach", "Offensive Engineer Builds"
+            "Follow Script", "Jump Power", "Antivoid", "Reach", "Offensive Engineer Builds", "Inf Jump"
     );
 
-    public static final List<String> QUICK_TEMPBAN_REASONS = List.of(
-            "Bug Abuse - Increased Speed", "Bug Abuse - High Jump", "Bug Abuse - Invincibility",
-            "Bug Abuse - Permanent Invisibility", "Bug Abuse - Tab Glitching", "Bug Abuse - Low Gravity"
-    );
+    private static final String INAPPROPRIATE_ENGINEER_BUILDS_MESSAGE =
+            "INAPPROPRIATE ENGINEER BUILDS. Please refrain from building anything inappropriate again or your next ban will be permanent.";
+
+    /**
+     * Maps each quick-pick temp-ban reason to the exact message shown to the banned user. Most reasons
+     * share the generic bug-abuse template; some (like inappropriate builds) have their own wording.
+     */
+    public static final Map<String, String> QUICK_TEMPBAN_REASONS;
+
+    static {
+        LinkedHashMap<String, String> reasons = new LinkedHashMap<>();
+        for (String reason : List.of(
+                "Bug Abuse - Increased Speed", "Bug Abuse - High Jump", "Bug Abuse - Invincibility",
+                "Bug Abuse - Permanent Invisibility", "Bug Abuse - Tab Glitching", "Bug Abuse - Low Gravity"
+        )) {
+            reasons.put(reason, generateBugAbuseMessage(reason));
+        }
+        reasons.put("Inappropriate Engineer Builds", INAPPROPRIATE_ENGINEER_BUILDS_MESSAGE);
+        QUICK_TEMPBAN_REASONS = Collections.unmodifiableMap(reasons);
+    }
 
     private static final String TEMPLATE =
             "%s based on evidence reviewed by the moderation team. " +

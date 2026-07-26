@@ -107,7 +107,7 @@ public class ActionModals {
                 .setPlaceholder("Pick a common reason (optional)")
                 .setRequired(false)
                 .setRequiredRange(0, 1);
-        for (String reason : BanAppealMessages.QUICK_TEMPBAN_REASONS)
+        for (String reason : BanAppealMessages.QUICK_TEMPBAN_REASONS.keySet())
             menu = menu.addOption(reason, reason);
         return Label.of("Quick Reason", menu.build());
     }
@@ -433,7 +433,7 @@ public class ActionModals {
         }
         final String duration = durationMapping.getAsString();
         // quick-picked bug-abuse reasons get the "reset and don't abuse" message; free-typed reasons stay as-is
-        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.generateBugAbuseMessage(exploit) : exploit;
+        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.QUICK_TEMPBAN_REASONS.get(exploit) : exploit;
 
         try {
             long daysDuration = Long.parseLong(duration);
@@ -523,7 +523,7 @@ public class ActionModals {
         final String reason = reasonMapping.getAsString();
         final String duration = durationMapping.getAsString();
         // quick-picked bug-abuse reasons get the "reset and don't abuse" message; free-typed reasons stay as-is
-        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.generateBugAbuseMessage(exploit) : exploit;
+        final String banReason = isQuickReasonChosen(event) ? BanAppealMessages.QUICK_TEMPBAN_REASONS.get(exploit) : exploit;
 
         try {
             long daysDuration = Long.parseLong(duration);
