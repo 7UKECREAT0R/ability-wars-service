@@ -29,7 +29,7 @@ public class BanAppealMessages {
 
     private static final DateTimeFormatter APPEAL_DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
 
-    private static final String BUG_ABUSE_TEMPLATE = "The Following: %s. If you are affected by a bug in the future, please reset and don't abuse it.";
+    private static final String BUG_ABUSE_TEMPLATE = "%s. If you are affected by a bug in the future, please reset and don't abuse it.";
 
     /**
      * Builds the ban appeal message for the given reason, with the appeal date set six months from today.
