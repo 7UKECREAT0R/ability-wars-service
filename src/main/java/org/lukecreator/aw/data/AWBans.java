@@ -59,6 +59,7 @@ public class AWBans {
                     SELECT MAX(b2.starts)
                     FROM bans b2
                     WHERE b2.user_id = ban.user_id
+                      AND b2.responsible_moderator = ban.responsible_moderator
                       AND b2.starts >= ? AND b2.starts <= ?
                 )
                 """;
