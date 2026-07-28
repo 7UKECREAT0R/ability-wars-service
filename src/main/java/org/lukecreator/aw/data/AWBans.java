@@ -17,6 +17,12 @@ import java.util.*;
  */
 public class AWBans {
     /**
+     * How long after a ban has ended a new ban on the same user is still treated as a duplicate
+     * of it rather than a genuinely new offense. Set to 0 to disable, or to a few minutes to guard
+     * against clock skew / late-arriving duplicate reports.
+     */
+    private static final long DUPLICATE_GRACE_MS = 24 * 60 * 60 * 1000L;
+    /**
      * the ID of the user associated with each ban in this list.
      */
     public final long userId;
@@ -37,7 +43,7 @@ public class AWBans {
 
     /**
      * Counts the number of distinct bans issued by a specific moderator (or staff member) within a specified time range.
-     * Only bans that have not been overturned (unbanned) are considered.
+     * Only bans that have not been overturned (unbanned) and are not duplicates of another ban within the grace period ({@value DUPLICATE_GRACE_MS}ms) are considered.
      *
      * @param staffRobloxId The Roblox ID of the staff member responsible for issuing the bans.
      * @param weekStart     The start timestamp (inclusive) of the week-long time range in milliseconds.
@@ -50,25 +56,38 @@ public class AWBans {
         final String query = """
                 SELECT COUNT(*)
                 FROM bans ban
-                LEFT JOIN unbans unban ON ban.user_id = unban.user_id
-                                       AND unban.date > ban.starts
                 WHERE ban.responsible_moderator = ?
-                AND ban.starts >= ? AND ban.starts <= ?
-                AND unban.user_id IS NULL
-                AND ban.starts = (
-                    SELECT MAX(b2.starts)
-                    FROM bans b2
-                    WHERE b2.user_id = ban.user_id
-                      AND b2.starts >= ? AND b2.starts <= ?
-                )
+                  AND ban.starts >= ? AND ban.starts <= ?
+                  -- no earlier ban was still in effect when this one was issued
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM bans prior
+                      WHERE prior.user_id = ban.user_id
+                        AND prior.starts < ban.starts
+                        AND (prior.ends IS NULL OR prior.ends + ? > ban.starts)
+                        -- unless that earlier ban had already been lifted before this ban was issued
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM unbans lifted
+                            WHERE lifted.user_id = prior.user_id
+                              AND lifted.date > prior.starts
+                              AND lifted.date < ban.starts
+                        )
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM unbans unban
+                      WHERE unban.user_id = ban.user_id
+                        AND unban.date > ban.starts
+                        AND (ban.ends IS NULL OR unban.date <= ban.ends)
+                  )
                 """;
 
         try (PreparedStatement statement = AWDatabase.connection.prepareStatement(query)) {
             statement.setLong(1, staffRobloxId);
             statement.setLong(2, weekStart);
             statement.setLong(3, weekEnd);
-            statement.setLong(4, weekStart);
-            statement.setLong(5, weekEnd);
+            statement.setLong(4, DUPLICATE_GRACE_MS);
 
             try (ResultSet result = statement.executeQuery()) {
                 if (result.next()) {
