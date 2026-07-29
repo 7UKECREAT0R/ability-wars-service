@@ -36,8 +36,8 @@ public class AWBans {
         this.userId = userId;
         this.bans = new ArrayList<>();
         if (bans != null) {
-            Collections.addAll(this.bans, bans);
             Arrays.sort(bans, Comparator.comparingLong(AWBan::starts));
+            Collections.addAll(this.bans, bans);
         }
     }
 
@@ -57,30 +57,32 @@ public class AWBans {
                 SELECT COUNT(*)
                 FROM bans ban
                 WHERE ban.responsible_moderator = ?
-                  AND ban.starts >= ? AND ban.starts <= ?
-                  -- no earlier ban was still in effect when this one was issued
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM bans prior
-                      WHERE prior.user_id = ban.user_id
-                        AND prior.starts < ban.starts
-                        AND (prior.ends IS NULL OR prior.ends + ? > ban.starts)
-                        -- unless that earlier ban had already been lifted before this ban was issued
-                        AND NOT EXISTS (
-                            SELECT 1
-                            FROM unbans lifted
-                            WHERE lifted.user_id = prior.user_id
-                              AND lifted.date > prior.starts
-                              AND lifted.date < ban.starts
-                        )
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM unbans unban
-                      WHERE unban.user_id = ban.user_id
-                        AND unban.date > ban.starts
-                        AND (ban.ends IS NULL OR unban.date <= ban.ends)
-                  )
+                  AND ban.starts >= ?
+                  AND ban.starts <= ?
+                  -- another ban on the same player was ISSUED within the grace window before this one
+                  AND NOT EXISTS (SELECT 1
+                                  FROM bans prior
+                                  WHERE prior.responsible_moderator != null
+                                    AND prior.user_id = ban.user_id
+                                    AND prior.starts < ban.starts
+                                    AND prior.starts + ? > ban.starts
+                                    -- unless that earlier ban had already been lifted before this ban was issued
+                                    AND NOT EXISTS (SELECT 1
+                                                    FROM unbans lifted
+                                                    WHERE lifted.user_id = prior.user_id
+                                                      AND lifted.date > prior.starts
+                                                      AND lifted.date < ban.starts))
+                  -- this ban was manually overturned while it was still THIS ban's reign
+                  AND NOT EXISTS (SELECT 1
+                                  FROM unbans unban
+                                  WHERE unban.user_id = ban.user_id
+                                    AND unban.date >= ban.starts
+                                    AND (ban.ends IS NULL OR unban.date <= ban.ends)
+                                    AND NOT EXISTS (SELECT 1
+                                                    FROM bans later
+                                                    WHERE later.user_id = ban.user_id
+                                                      AND later.starts > ban.starts
+                                                      AND later.starts <= unban.date))
                 """;
 
         try (PreparedStatement statement = AWDatabase.connection.prepareStatement(query)) {

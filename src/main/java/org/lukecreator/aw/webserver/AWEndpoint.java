@@ -38,7 +38,8 @@ public class AWEndpoint {
         PendingRequests.removeExpiredRequests();
 
         // return JSON of all current requests
-        return ResponseEntity.ok(this.gsonInstance.toJson(PendingRequests.getPendingRequestsJSON()));
+        final JsonObject pendingRequests = PendingRequests.getPendingRequestsJSON();
+        return ResponseEntity.ok(this.gsonInstance.toJson(pendingRequests));
     }
 
     @PostMapping("/fulfill")
