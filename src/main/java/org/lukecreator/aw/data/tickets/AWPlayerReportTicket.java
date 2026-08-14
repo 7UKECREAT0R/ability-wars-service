@@ -49,9 +49,9 @@ public class AWPlayerReportTicket extends AWTicket {
     private static final Map<Pattern, String> SUPPORTED_SERVICES = Map.of(
             Pattern.compile("https?://(?:www\\.)?outplayed\\.tv/roblox/\\w+"), "Outplayed",
             Pattern.compile("https?://(?:www\\.)?medal\\.tv/(?:\\w{2}/)?games/roblox/clips/[A-z0-9_-]+(?:\\?invite=[A-z0-9_-]+)?(?:&v=\\d+)?"), "Medal",
-            Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?"), "YouTube",
+            Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), "YouTube",
             Pattern.compile("https?://(?:www\\.|m\\.)?youtube\\.com/watch\\?v=[A-z0-9_&=-]+"), "YouTube",
-            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?"), "YouTube",
+            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), "YouTube",
             Pattern.compile("https?://(?:www\\.)?gyazo\\.com/[a-z0-9]+(\\.\\w{3})?"), "Gyazo"
     );
     private static final Map<Pattern, String> UNSUPPORTED_SERVICES = Map.of(
