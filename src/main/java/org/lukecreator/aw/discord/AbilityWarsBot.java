@@ -92,7 +92,7 @@ public class AbilityWarsBot extends ListenerAdapter {
     public AbilityWarsBot(boolean registerCommands) {
         JDABuilder builder = JDABuilder
                 .createDefault(TOKEN)
-                .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .setActivity(Activity.of(Activity.ActivityType.PLAYING, "Skyrift"))
                 .setAutoReconnect(true)
                 .addEventListeners(this);
