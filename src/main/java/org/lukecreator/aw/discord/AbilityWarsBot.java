@@ -122,6 +122,8 @@ public class AbilityWarsBot extends ListenerAdapter {
         } catch (SQLException e) {
             System.out.println("Never mind, failed to load tickets from database: " + e);
             e.printStackTrace();
+        } finally {
+            System.out.println("Done with all post-ready processes.");
         }
     }
 

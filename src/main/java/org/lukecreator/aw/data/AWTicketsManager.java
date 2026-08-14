@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -93,9 +94,12 @@ public class AWTicketsManager {
         }
 
         // any additional necessary setup for specific ticket types
-        for (AWTicket ticket : getOpenTickets()) {
-            ticket.afterCacheLoaded();
-        }
+        CompletableFuture.runAsync(() -> {
+            for (AWTicket ticket : getOpenTickets()) {
+                ticket.afterCacheLoaded();
+            }
+            System.out.println("Tickets have all finished loading.");
+        });
     }
 
     /**
