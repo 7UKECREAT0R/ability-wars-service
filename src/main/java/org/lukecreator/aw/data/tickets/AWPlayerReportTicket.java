@@ -350,19 +350,15 @@ public class AWPlayerReportTicket extends AWTicket {
             AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), evidenceDetails, evidenceURL);
             newEvidence.pushToDatabase();
             Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+            for (AWPlayerReportTicket linkedTicket : this.relatedTickets)
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(linkedTicket.id, id);
+
+            int linkedCount = this.relatedTickets.size();
+            if (linkedCount > 0)
+                return "Added evidence successfully and added to " + linkedCount + " other related tickets.";
 
             return "Added evidence successfully. (evidence ID: `%d`)".formatted(id);
         }
-
-/*        for (Message.Attachment attachment : attachments) {
-            if (AWEvidence.isInvalidAttachment(attachment)) {
-                String extension = attachment.getFileExtension();
-                if (extension == null) {
-                    return "We can't accept attachments with that file type. We support `.mp4`, `.mov`, and `.webm`.";
-                }
-                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. We support `.mp4`, `.mov`, and `.webm`.";
-            }
-        }*/
 
         MessageChannel forwardChannel = message.getGuild()
                 .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
@@ -388,10 +384,19 @@ public class AWPlayerReportTicket extends AWTicket {
                 AWEvidence evidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), messageContent, this.evidenceURL);
                 evidence.pushToDatabase();
                 Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+
+                // also add to any linked tickets
+                for (AWPlayerReportTicket linkedTicket : this.relatedTickets)
+                    Links.TicketEvidenceLinks.linkEvidenceToTicket(linkedTicket.id, id);
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         });
+
+        int linkedCount = this.relatedTickets.size();
+        if (linkedCount > 0)
+            return "Added evidence successfully and added to " + linkedCount + " other related tickets.";
 
         return "Added evidence successfully.";
     }
@@ -457,22 +462,22 @@ public class AWPlayerReportTicket extends AWTicket {
             AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
             newEvidence.pushToDatabase();
             Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+            for (AWPlayerReportTicket linkedTicket : this.relatedTickets)
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(linkedTicket.id, id);
+
+            int linkedCount = this.relatedTickets.size();
+            if (linkedCount > 0) {
+                if (previousEvidenceId == -1)
+                    return "Changed the main evidence successfully and added it to %d other related tickets.".formatted(linkedCount);
+                else
+                    return "Changed the main evidence successfully and added it to %d other related tickets. Previous evidence ID: `%d`".formatted(linkedCount, previousEvidenceId);
+            }
 
             if (previousEvidenceId == -1)
                 return "Changed the main evidence successfully.";
             else
                 return "Changed the main evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
         }
-
-/*        for (Message.Attachment attachment : attachments) {
-            if (AWEvidence.isInvalidAttachment(attachment)) {
-                String extension = attachment.getFileExtension();
-                if (extension == null) {
-                    return "We can't accept attachments with that file type. We support `.mp4`, `.mov`, and `.webm`.";
-                }
-                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. We support `.mp4`, `.mov`, and `.webm`.";
-            }
-        }*/
 
         MessageChannel forwardChannel = message.getGuild()
                 .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
@@ -499,10 +504,23 @@ public class AWPlayerReportTicket extends AWTicket {
                 AWEvidence newEvidence = new AWEvidence(id, timestamp, this.accusedUser.userId(), this.evidenceDetails, this.evidenceURL);
                 newEvidence.pushToDatabase();
                 Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, id);
+
+                // also add to any linked tickets, but don't set as main evidence
+                for (AWPlayerReportTicket linkedTicket : this.relatedTickets)
+                    Links.TicketEvidenceLinks.linkEvidenceToTicket(linkedTicket.id, id);
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         });
+
+        int linkedCount = this.relatedTickets.size();
+        if (linkedCount > 0) {
+            if (previousEvidenceId == -1)
+                return "Changed the main evidence successfully and added it to " + linkedCount + " other related tickets.";
+            else
+                return "Changed the main evidence successfully and added it to " + linkedCount + " other related tickets. Previous evidence ID: `%d`".formatted(previousEvidenceId);
+        }
 
         if (previousEvidenceId == -1)
             return "Changed the main evidence successfully.";
@@ -573,7 +591,33 @@ public class AWPlayerReportTicket extends AWTicket {
             this.evidenceDetails = json.get("details").getAsString();
     }
 
-    public void collectRelatedTickets(boolean modifyOtherTickets) {
+    /**
+     * Forwards this ticket's main evidence to another ticket that's related and would benefit from having it, and vice versa.
+     */
+    private void shareEvidenceWith(AWPlayerReportTicket otherTicket, JDA jda) {
+        try {
+            if (this.evidenceId != null)
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(otherTicket.id, this.evidenceId);
+            if (otherTicket.evidenceId != null)
+                Links.TicketEvidenceLinks.linkEvidenceToTicket(this.id, otherTicket.evidenceId);
+
+            long channelId = otherTicket.getDiscordChannelId();
+            if (jda != null) {
+                TextChannel tc = jda.getTextChannelById(channelId);
+                if (tc != null) {
+                    tc.sendMessageEmbeds(new EmbedBuilder()
+                            .setDescription("Additional evidence received by another reporter! <#" + this.getDiscordChannelId() + ">")
+                            .build()
+                    ).queue();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Failed to link evidence to ticket:");
+            e.printStackTrace();
+        }
+    }
+
+    public void collectRelatedTickets(boolean modifyOtherTickets, @Nullable JDA jda) {
         Collection<AWTicket> openTickets = AWTicketsManager.getOpenTickets();
         this.relatedTickets.clear();
         for (AWTicket _ticket : openTickets) {
@@ -581,8 +625,10 @@ public class AWPlayerReportTicket extends AWTicket {
                 continue;
             if (ticket.accusedUsername.equalsIgnoreCase(this.accusedUsername)) {
                 this.relatedTickets.add(ticket);
-                if (modifyOtherTickets)
+                if (modifyOtherTickets) {
                     ticket.relatedTickets.add(this);
+                    this.shareEvidenceWith(ticket, jda);
+                }
             }
         }
     }
@@ -590,7 +636,7 @@ public class AWPlayerReportTicket extends AWTicket {
     @Override
     public void afterCacheLoaded() {
         // check if any other tickets are actively open reporting the same user and link them together
-        this.collectRelatedTickets(false);
+        this.collectRelatedTickets(false, null);
 
         // load player
         if (this.accusedUser == null) {
@@ -854,7 +900,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 }
 
                 // check if any other tickets are actively open reporting the same user and link them together
-                this.collectRelatedTickets(true);
+                this.collectRelatedTickets(true, event.getJDA());
 
                 // finish the chain
                 onFinishedLoading.accept(true);
