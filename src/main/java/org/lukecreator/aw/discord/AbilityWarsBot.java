@@ -81,7 +81,8 @@ public class AbilityWarsBot extends ListenerAdapter {
             new BlacklistRemoveCommand(),
             new BlacklistInfoCommand(),
             new CreateTicketButtonCommand(),
-            new TicketManageCommand()
+            new TicketManageCommand(),
+            new PunchRolesCommand()
     };
     private static final String TOKEN = System.getenv("AW_BOT_TOKEN");
     public final JDA bot;
