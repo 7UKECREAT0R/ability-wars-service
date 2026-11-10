@@ -23,9 +23,9 @@ public class AWBlacklistAppealTicket extends AWTicket {
                                    long discordChannelId, long openedTimestamp,
                                    boolean isOpen, String closeReason,
                                    long closedByDiscordId, JsonObject inputQuestions,
-                                   long ownerDiscordId) {
+                                   long ownerDiscordId, boolean overflow) {
         super(id, discordChannelId, openedTimestamp, isOpen,
-                closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
     }
 
     @Override

@@ -43,6 +43,7 @@ import java.util.function.Consumer;
  */
 public abstract class AWTicket {
     public static final long CATEGORY_ID_PLAYER_REPORTS = 1329635916083363911L;
+    public static final long CATEGORY_ID_PLAYER_REPORTS_OVERFLOW = 1569727315003576360L;
     public static final long CATEGORY_ID_APPEALS = 1346983262610001984L;
     public static final long CATEGORY_ID_DISPUTES = 1272859910685851709L;
     public static final long CATEGORY_ID_BLACKLIST_APPEALS = 1212490640215253022L;
@@ -50,6 +51,7 @@ public abstract class AWTicket {
     private static AtomicLong nextId = null;
     public final long id;
     public final long ownerDiscordId;
+    public final boolean overflow;
     public final long openedTimestamp;
     public Long closedByDiscordId;
     public boolean isOpen;
@@ -70,7 +72,7 @@ public abstract class AWTicket {
                     long discordChannelId, long openedTimestamp,
                     boolean isOpen, String closeReason,
                     long closedByDiscordId, JsonObject inputQuestions,
-                    long ownerDiscordId) {
+                    long ownerDiscordId, boolean overflow) {
         this.id = id;
         this.discordChannelId = discordChannelId;
         this.openedTimestamp = openedTimestamp;
@@ -79,6 +81,7 @@ public abstract class AWTicket {
         this.closedByDiscordId = closedByDiscordId;
         this.ownerDiscordId = ownerDiscordId;
         this.inputQuestionsRaw = inputQuestions;
+        this.overflow = overflow;
     }
 
     /**
@@ -118,8 +121,22 @@ public abstract class AWTicket {
             throw new IllegalArgumentException("So... basically... the category this ticket is supposed to go in doesn't exist. Please wait for the developers to fix this!");
         }
         int ticketsInCategory = ticketCategory.getTextChannels().size();
+        boolean overflow = false;
         if (ticketsInCategory >= maxTickets) {
-            throw new IllegalArgumentException("Tickets are currently full (`" + maxTickets + "` in queue). Please wait a bit before trying again!");
+            // check overflow
+            if (ticketType.hasOverflowCategory()) {
+                Category overflowCategory = currentGuild.getCategoryById(ticketType.overflowCategoryId);
+                if (overflowCategory == null)
+                    throw new IllegalArgumentException("So... basically... the **overflow** category this ticket is supposed to go in doesn't exist. Please wait for the developers to fix this!");
+                int ticketsInOverflow = overflowCategory.getTextChannels().size();
+                if (ticketsInOverflow >= maxTickets)
+                    throw new IllegalArgumentException("Tickets are currently full (`" + (maxTickets * 2) + "` in queue). Please wait a bit before trying again!");
+
+                // can use overflow category
+                overflow = true;
+            } else {
+                throw new IllegalArgumentException("Tickets are currently full (`" + maxTickets + "` in queue). Please wait a bit before trying again!");
+            }
         }
 
         long nextTicketID = AWTicket.nextAvailableTicketID();
@@ -129,17 +146,17 @@ public abstract class AWTicket {
         final long closedByDiscordId = -1L;
         AWTicket ticket = switch (ticketType) {
             case PlayerReport ->
-                    new AWPlayerReportTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWPlayerReportTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
             case BanAppeal ->
-                    new AWBanAppealTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWBanAppealTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
             case BanDispute ->
-                    new AWBanDisputeTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWBanDisputeTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
             case BlacklistAppeal ->
-                    new AWBlacklistAppealTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWBlacklistAppealTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
             case DataLossReport ->
-                    new AWDataLossTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWDataLossTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
             case ContentCreatorApplication ->
-                    new AWContentCreatorApplicationTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong());
+                    new AWContentCreatorApplicationTicket(nextTicketID, discordChannelId, openedTimestamp, isOpen, null, closedByDiscordId, null, ticketOwner.getIdLong(), overflow);
         };
 
         Modal modal = ticket.createInputModal(nextTicketID);
@@ -158,21 +175,21 @@ public abstract class AWTicket {
                                                       long discordChannelId, long openedTimestamp,
                                                       boolean isOpen, String closeReason,
                                                       long closedByDiscordId, JsonObject inputQuestions,
-                                                      long ownerDiscordId) {
+                                                      long ownerDiscordId, boolean overflow) {
         return switch (type) {
             case PlayerReport -> new AWPlayerReportTicket(id, discordChannelId, openedTimestamp,
-                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
             case BanAppeal -> new AWBanAppealTicket(id, discordChannelId, openedTimestamp,
-                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
             case BanDispute -> new AWBanDisputeTicket(id, discordChannelId, openedTimestamp,
-                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
             case BlacklistAppeal -> new AWBlacklistAppealTicket(id, discordChannelId, openedTimestamp,
-                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
             case DataLossReport -> new AWDataLossTicket(id, discordChannelId, openedTimestamp,
-                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                    isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
             case ContentCreatorApplication ->
                     new AWContentCreatorApplicationTicket(id, discordChannelId, openedTimestamp,
-                            isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                            isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
         };
     }
 
@@ -252,8 +269,11 @@ public abstract class AWTicket {
                 long ownerDiscordId = results.getLong(8);
                 JsonObject inputQuestions = JsonParser.parseString(inputQuestionsRaw).getAsJsonObject();
 
+                // we don't really care about overflow beyond when the channel's created
+                boolean overflow = false;
+
                 AWTicket loadedTicket = createBasedOnType(type, id, discordChannelId, openedTimestamp, isOpen,
-                        closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+                        closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
                 loadedTicket.processInputQuestionsJSON(inputQuestions);
                 return loadedTicket;
             }
@@ -609,10 +629,11 @@ public abstract class AWTicket {
             return;
         }
 
-        Category category = guild.getCategoryById(ticketType.channelCategoryId);
+        long categoryId = (this.overflow && ticketType.hasOverflowCategory()) ? ticketType.overflowCategoryId : ticketType.channelCategoryId;
+        Category category = guild.getCategoryById(categoryId);
 
         if (category == null) {
-            System.out.println("Strange problem: Cannot find category " + ticketType.channelCategoryId + " for ticket type " + ticketType.identifier + " (id: " + this.id + ")");
+            System.out.println("Strange problem: Cannot find category " + categoryId + " for ticket type " + ticketType.name() + " (id: " + this.id + ")");
             return;
         }
 
@@ -816,17 +837,17 @@ public abstract class AWTicket {
      */
     public enum Type {
         PlayerReport("player-report", "Player Report", 0xA0, 3, 0,
-                "report-", "Report a player for breaking the rules", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_PLAYER_REPORTS),
+                "report-", "Report a player for breaking the rules", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_PLAYER_REPORTS, CATEGORY_ID_PLAYER_REPORTS_OVERFLOW),
         BanAppeal("ban-appeal", "Ban Appeal", 0xB0, 1, 1,
-                "appeal-", "Appeal a ban for exploiting", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_APPEALS),
+                "appeal-", "Appeal a ban for exploiting", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_APPEALS, null),
         BanDispute("ban-dispute", "Ban Dispute", 0xB1, 1, 1,
-                "dispute-", "Dispute a ban that was a mistake by staff", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_DISPUTES),
+                "dispute-", "Dispute a ban that was a mistake by staff", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_DISPUTES, null),
         BlacklistAppeal("blacklist-appeal", "Blacklist Appeal", 0xB2, 1, 2,
-                "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS),
+                "blacklist-appeal-", "Appeal a blacklist from report tickets", AbilityWarsBot.AW_APPEALS_GUILD_ID, CATEGORY_ID_BLACKLIST_APPEALS, null),
         DataLossReport("data-loss", "Report Data Loss", 0xC0, 1, 3,
-                "data-loss-", "Report a lost gifted gamepass.", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT),
+                "data-loss-", "Report a lost gifted gamepass.", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT, null),
         ContentCreatorApplication("cc-application", "Content Creator Application", 0xC1, 1, 4,
-                "cc-app-", "Apply to receive the Content Creator role!", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT);
+                "cc-app-", "Apply to receive the Content Creator role!", AbilityWarsBot.AW_GUILD_ID, CATEGORY_ID_SUPPORT, null);
 
         public static final Command.Choice[] AS_COMMAND_CHOICES = Arrays
                 .stream(Type.values())
@@ -847,6 +868,7 @@ public abstract class AWTicket {
         public final String description;
         public final long guildId;
         public final long channelCategoryId;
+        public final Long overflowCategoryId;
 
         /**
          * The unique ID of this ticket type. Used in the database, so don’t change these!
@@ -857,7 +879,7 @@ public abstract class AWTicket {
          *  <li>0xB... appeals server ticket types</li>
          * </ul>
          */
-        Type(String identifier, String title, int id, int maxTicketsPerUser, int maxTicketsId, String channelPrefix, String description, long guildId, long channelCategoryId) {
+        Type(String identifier, String title, int id, int maxTicketsPerUser, int maxTicketsId, String channelPrefix, String description, long guildId, long channelCategoryId, Long overflowCategoryId) {
             this.identifier = identifier;
             this.title = title;
             this.id = id;
@@ -867,6 +889,7 @@ public abstract class AWTicket {
             this.description = description;
             this.guildId = guildId;
             this.channelCategoryId = channelCategoryId;
+            this.overflowCategoryId = overflowCategoryId;
         }
 
         public static Type fromId(int id) {
@@ -898,6 +921,10 @@ public abstract class AWTicket {
          */
         public boolean isAppealsServer() {
             return this.id >= 0xB0 && this.id <= 0xBF;
+        }
+
+        public boolean hasOverflowCategory() {
+            return this.overflowCategoryId != null;
         }
 
         public String getCreationModalCustomId(long id) {

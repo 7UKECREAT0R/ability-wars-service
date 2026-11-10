@@ -188,15 +188,22 @@ public class AWTicketsManager {
                 errors.add("Failed to get the guild %d which was requested by ticket type %s.".formatted(type.guildId, type.identifier));
                 continue;
             }
-            Category category = guild.getCategoryById(type.channelCategoryId);
-            if (category == null) {
-                errors.add("Failed to get the category %d which was requested by ticket type %s.".formatted(type.channelCategoryId, type.identifier));
-                continue;
-            }
-            List<TextChannel> channels = category.getTextChannels();
-            for (TextChannel channel : channels) {
-                if (getTicketFromCacheByDiscordChannel(channel) == null)
-                    channel.delete().complete(); // delete the channel since there's no ticket linked to it
+            Category[] categories;
+            if (type.hasOverflowCategory())
+                categories = new Category[]{guild.getCategoryById(type.channelCategoryId), guild.getCategoryById(type.overflowCategoryId)};
+            else
+                categories = new Category[]{guild.getCategoryById(type.channelCategoryId)};
+
+            for (Category category : categories) {
+                if (category == null) {
+                    errors.add("Failed to get the category (overflow or regular) for ticket type %s".formatted(type.name()));
+                    continue;
+                }
+                List<TextChannel> channels = category.getTextChannels();
+                for (TextChannel channel : channels) {
+                    if (getTicketFromCacheByDiscordChannel(channel) == null)
+                        channel.delete().complete(); // delete the channel since there's no ticket linked to it
+                }
             }
         }
 

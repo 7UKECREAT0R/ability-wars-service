@@ -39,8 +39,8 @@ public class AWContentCreatorApplicationTicket extends AWTicket {
      */
     public String accountLink;
 
-    public AWContentCreatorApplicationTicket(long id, long discordChannelId, long openedTimestamp, boolean isOpen, String closeReason, long closedByDiscordId, JsonObject inputQuestions, long ownerDiscordId) {
-        super(id, discordChannelId, openedTimestamp, isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId);
+    public AWContentCreatorApplicationTicket(long id, long discordChannelId, long openedTimestamp, boolean isOpen, String closeReason, long closedByDiscordId, JsonObject inputQuestions, long ownerDiscordId, boolean overflow) {
+        super(id, discordChannelId, openedTimestamp, isOpen, closeReason, closedByDiscordId, inputQuestions, ownerDiscordId, overflow);
     }
 
     @Override
