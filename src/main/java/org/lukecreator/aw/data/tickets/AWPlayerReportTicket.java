@@ -46,14 +46,19 @@ import java.util.regex.Pattern;
 public class AWPlayerReportTicket extends AWTicket {
     public static final long IN_GAME_PUNISHMENTS_CHANNEL = 1329630658640875575L;
     public static final long BLACKLIST_ROLE = 1329649113368760354L;
+    private static final String YOUTUBE_SERVICE_NAME = "YouTube";
+    private static final String ID_INAPPROPRIATE_ENGI_BUILD = "inappropriate engineer build";
+
+
     private static final Map<Pattern, String> SUPPORTED_SERVICES = Map.of(
             Pattern.compile("https?://(?:www\\.)?outplayed\\.tv/roblox/\\w+"), "Outplayed",
             Pattern.compile("https?://(?:www\\.)?medal\\.tv/(?:\\w{2}/)?games/(?:roblox|imported)/clips/[A-z0-9_-]+(?:\\?invite=[A-z0-9_-]+)?(?:&v=\\d+)?"), "Medal",
-            Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), "YouTube",
-            Pattern.compile("https?://(?:www\\.|m\\.)?youtube\\.com/watch\\?v=[A-z0-9_&=-]+"), "YouTube",
-            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), "YouTube",
+            Pattern.compile("https?://(?:www\\.)?youtube\\.com/shorts/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), YOUTUBE_SERVICE_NAME,
+            Pattern.compile("https?://(?:www\\.|m\\.)?youtube\\.com/watch\\?v=[A-z0-9_&=-]+"), YOUTUBE_SERVICE_NAME,
+            Pattern.compile("https?://(?:www\\.)?youtu\\.be/[A-z0-9_-]+(\\?si=[A-z0-9_-]+)?([?&]t=\\d+s?)?([?&]feature=shared)?([?&]is=[A-z0-9_-]+)?"), YOUTUBE_SERVICE_NAME,
             Pattern.compile("https?://(?:www\\.)?gyazo\\.com/[a-z0-9]+(\\.\\w{3})?"), "Gyazo"
     );
+
     private static final Map<Pattern, String> UNSUPPORTED_SERVICES = Map.of(
             Pattern.compile("https?://(?:www\\.)?twitch\\.tv/.+"), "Twitch",
             Pattern.compile("https?://(?:www\\.)?vimeo\\.com/.+"), "Vimeo",
@@ -759,7 +764,6 @@ public class AWPlayerReportTicket extends AWTicket {
             return;
         }
 
-
         List<String> selectedRulesBroken = ruleMapping.getAsStringList();
         if (selectedRulesBroken.isEmpty()) {
             event.getHook().editOriginal("You must select which rule the player broke in order to report them!").queue();
@@ -796,7 +800,6 @@ public class AWPlayerReportTicket extends AWTicket {
                 }
             }
 
-
             // check evidence (if present)
             if (!this.evidenceURL.isEmpty()) {
                 if (!isSupportedService(this.evidenceURL)) {
@@ -808,6 +811,17 @@ public class AWPlayerReportTicket extends AWTicket {
                     onFinishedLoading.accept(false);
                     return;
                 }
+
+                // specific handler for cases where user uses YouTube to host evidence for an engineer build (swastikas usually) because they apparently get deleted off YouTube a lot.
+                if (this.ruleBroken.equals(ID_INAPPROPRIATE_ENGI_BUILD)) {
+                    String serviceName = getKnownServiceName(this.evidenceURL);
+                    if (serviceName != null && serviceName.equals(YOUTUBE_SERVICE_NAME)) {
+                        event.getHook().editOriginal("Please upload your video to another non-YouTube service such as Gyazo, or leave the field empty and upload it in the ticket once it's open. YouTube often deletes videos with inappropriate engineer builds in them, which may cause the player to get unbanned earlier than they should. We appreciate your understanding!").queue();
+                        onFinishedLoading.accept(false);
+                        return;
+                    }
+                }
+
                 // supported service. create an evidence entry for it
                 long id = System.currentTimeMillis(); // is probably unique
                 this.evidenceId = id;
@@ -864,7 +878,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 .addOption("Exploiting/Cheats", "exploiting")
                 .addOption("Bug Abuse", "bug abuse")
                 .addOption("Tab Glitching", "tab glitching")
-                .addOption("Inappropriate Engineer Build", "inappropriate engineer build")
+                .addOption("Inappropriate Engineer Build", ID_INAPPROPRIATE_ENGI_BUILD)
                 .setRequiredRange(1, 1)
                 .build());
         Label evidenceInput = Label.of("Evidence", TextInput
