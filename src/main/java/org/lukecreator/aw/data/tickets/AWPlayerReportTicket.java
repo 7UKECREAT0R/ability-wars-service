@@ -606,7 +606,7 @@ public class AWPlayerReportTicket extends AWTicket {
                 TextChannel tc = jda.getTextChannelById(channelId);
                 if (tc != null) {
                     tc.sendMessageEmbeds(new EmbedBuilder()
-                            .setDescription("Additional evidence received by another reporter! <#" + this.getDiscordChannelId() + ">")
+                            .setDescription("Additional evidence received by another reporter! (ticket " + this.id + ")")
                             .build()
                     ).queue();
                 }
@@ -627,7 +627,8 @@ public class AWPlayerReportTicket extends AWTicket {
                 this.relatedTickets.add(ticket);
                 if (modifyOtherTickets) {
                     ticket.relatedTickets.add(this);
-                    this.shareEvidenceWith(ticket, jda);
+                    if (this.evidenceId != null)
+                        this.shareEvidenceWith(ticket, jda);
                 }
             }
         }

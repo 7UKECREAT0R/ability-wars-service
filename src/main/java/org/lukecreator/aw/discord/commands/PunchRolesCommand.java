@@ -67,7 +67,8 @@ public class PunchRolesCommand extends BotCommand {
                     InfoFulfillment info = (InfoFulfillment) fulfillment;
                     long punches = info.punches;
                     List<Role> roles = new ArrayList<>();
-                    for (Map.Entry<Long, Long> entry : PUNCH_ROLES.entrySet()) {
+                    for (Map.Entry<Long, Long> entry : PUNCH_ROLES.entrySet()
+                            .stream().sorted(Map.Entry.comparingByKey()).toList()) {
                         if (punches >= entry.getKey()) {
                             Role roleById = guild.getRoleById(entry.getValue());
                             if (roleById == null) {
