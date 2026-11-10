@@ -20,7 +20,7 @@ public class AWEvidence {
      * The channel in Discord which should hold attachments. In this case, it's #mp4-storage inside Ability Wars.
      */
     public final static long VIDEO_FORWARD_CHANNEL = 1336072275673485433L;
-    public final static String[] ALLOWED_EXTENSIONS = new String[]{"mp4", "mov", "png", "jpg", "jpeg"};
+    public final static String[] ALLOWED_EXTENSIONS = new String[]{"mp4", "mov", "webm"};
     public final long evidenceId;
     public final long timestamp;
     public Long accusedUserRobloxId;

@@ -60,7 +60,6 @@ public class AWTicketsManager {
 
     /**
      * Retrieves a collection of all open tickets currently stored in the cache.
-     * 6
      *
      * @return A collection of open tickets, sourced from the cache.
      */
@@ -95,8 +94,13 @@ public class AWTicketsManager {
 
         // any additional necessary setup for specific ticket types
         CompletableFuture.runAsync(() -> {
-            for (AWTicket ticket : getOpenTickets()) {
+            final Collection<AWTicket> _openTickets = getOpenTickets();
+            final AWTicket[] openTickets = _openTickets.toArray(AWTicket[]::new);
+
+            for (int i = 0; i < openTickets.length; i++) {
+                AWTicket ticket = openTickets[i];
                 ticket.afterCacheLoaded();
+                System.out.println("Ticket " + i + "/" + openTickets.length + " loaded\t\t(" + ticket.getDiscordChannelId() + ")");
             }
             System.out.println("Tickets have all finished loading.");
         });

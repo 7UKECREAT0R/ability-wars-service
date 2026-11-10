@@ -354,15 +354,15 @@ public class AWPlayerReportTicket extends AWTicket {
             return "Added evidence successfully. (evidence ID: `%d`)".formatted(id);
         }
 
-        for (Message.Attachment attachment : attachments) {
+/*        for (Message.Attachment attachment : attachments) {
             if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
-                    return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                    return "We can't accept attachments with that file type. We support `.mp4`, `.mov`, and `.webm`.";
                 }
-                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. We support `.mp4`, `.mov`, and `.webm`.";
             }
-        }
+        }*/
 
         MessageChannel forwardChannel = message.getGuild()
                 .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
@@ -464,15 +464,15 @@ public class AWPlayerReportTicket extends AWTicket {
                 return "Changed the main evidence successfully. Previous evidence ID: `%d`".formatted(previousEvidenceId);
         }
 
-        for (Message.Attachment attachment : attachments) {
+/*        for (Message.Attachment attachment : attachments) {
             if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
-                    return "We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                    return "We can't accept attachments with that file type. We support `.mp4`, `.mov`, and `.webm`.";
                 }
-                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. For videos, we support `.mp4`, and for images, we support all popular file types.";
+                return "We can't accept attachments with the file type `." + extension.replace("`", "") + "`. We support `.mp4`, `.mov`, and `.webm`.";
             }
-        }
+        }*/
 
         MessageChannel forwardChannel = message.getGuild()
                 .getChannelById(TextChannel.class, AWEvidence.VIDEO_FORWARD_CHANNEL);
@@ -643,11 +643,11 @@ public class AWPlayerReportTicket extends AWTicket {
             if (AWEvidence.isInvalidAttachment(attachment)) {
                 String extension = attachment.getFileExtension();
                 if (extension == null) {
-                    event.getChannel().sendMessage("We can't accept attachments with that file type. For videos, we support `.mp4`, and for images, we support all popular file types.").queue();
+                    event.getChannel().sendMessage("We can't accept attachments with that file type. We support `.mp4`, `.mov`, and `.webm`.").queue();
                     return;
                 }
                 extension = extension.replace("`", ""); // prevent pinging via injection
-                event.getChannel().sendMessage("We can't accept attachments with the file type `." + extension + "`. For videos, we support `.mp4`, and for images, we support all popular file types.").queue();
+                event.getChannel().sendMessage("We can't accept attachments with the file type `." + extension + "`. We support `.mp4`, `.mov`, and `.webm`.").queue();
                 return;
             }
         }
